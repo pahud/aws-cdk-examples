@@ -1,0 +1,26 @@
+name: Hello World
+description: This is hello world component doc for Linux.
+schemaVersion: 1.0
+
+phases:
+  - name: build
+    steps:
+      - name: HelloWorldStep
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "Hello World from the build phase."
+  - name: validate
+    steps:
+      - name: HelloWorldStep
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "Hello World from the validate phase."
+  - name: test
+    steps:
+      - name: HelloWorldStep
+        action: ExecuteBash
+        inputs:
+          commands:
+            - echo "Hello World from the test phase."
