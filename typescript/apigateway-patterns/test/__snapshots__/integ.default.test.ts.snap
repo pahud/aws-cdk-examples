@@ -20,11 +20,45 @@ exports[`default validation 1`] = `
     },
   },
   "Resources": {
+    "Cluster3DA9CCBA": {
+      "Properties": {
+        "CapacityProviders": [
+          "FARGATE",
+          "FARGATE_SPOT",
+        ],
+        "Cluster": {
+          "Ref": "ClusterEB0386A7",
+        },
+        "DefaultCapacityProviderStrategy": [
+          {
+            "Base": 2,
+            "CapacityProvider": "FARGATE_SPOT",
+            "Weight": 50,
+          },
+          {
+            "CapacityProvider": "FARGATE",
+            "Weight": 50,
+          },
+        ],
+      },
+      "Type": "AWS::ECS::ClusterCapacityProviderAssociations",
+    },
     "ClusterEB0386A7": {
       "Type": "AWS::ECS::Cluster",
     },
     "DemoServiceFargateService96BA427F": {
       "Properties": {
+        "CapacityProviderStrategy": [
+          {
+            "Base": 2,
+            "CapacityProvider": "FARGATE_SPOT",
+            "Weight": 50,
+          },
+          {
+            "CapacityProvider": "FARGATE",
+            "Weight": 50,
+          },
+        ],
         "Cluster": {
           "Ref": "ClusterEB0386A7",
         },
@@ -32,11 +66,11 @@ exports[`default validation 1`] = `
           "MaximumPercent": 200,
           "MinimumHealthyPercent": 50,
         },
+        "DesiredCount": 2,
         "EnableECSManagedTags": false,
-        "LaunchType": "FARGATE",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
-            "AssignPublicIp": "ENABLED",
+            "AssignPublicIp": "DISABLED",
             "SecurityGroups": [
               {
                 "Fn::GetAtt": [

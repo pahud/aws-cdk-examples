@@ -79,7 +79,7 @@ export class CloudMapIntegration extends apigw.HttpRouteIntegration {
     this.cloudMapServiceArn = cloudMapServiceArn;
     this.vpcLinkId = vpcLinkId;
   }
-  public bind(): apigw.HttpRouteIntegrationConfig {
+  public bind(_: apigw.HttpRouteIntegrationBindOptions): apigw.HttpRouteIntegrationConfig {
     return {
       type: apigw.HttpIntegrationType.HTTP_PROXY,
       connectionId: this.vpcLinkId,
