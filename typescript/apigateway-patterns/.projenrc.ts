@@ -12,13 +12,13 @@ const project = new awscdk.AwsCdkConstructLibrary({
     '@aws-cdk/aws-apigatewayv2-alpha@^2.80.0-alpha.0',
     '@aws-cdk/aws-lambda-python-alpha@^2.80.0-alpha.0',
   ],
+  peerDeps: [
+    '@aws-cdk/aws-apigatewayv2-alpha@^2.80.0-alpha.0',
+    '@aws-cdk/aws-lambda-python-alpha@^2.80.0-alpha.0',
+  ],
   devDeps: [
     'aws-cdk@^2.80.0',
   ],
-  // deps: [],                /* Runtime dependencies of this module. */
-  // description: undefined,  /* The description is just a string that helps people understand the purpose of the package. */
-  // devDeps: [],             /* Build dependencies for this module. */
-  // packageName: undefined,  /* The "name" in package.json. */
 });
 
 // required for vscode eslint extension to locate the tsconfig correctly
