@@ -33,21 +33,42 @@ export interface ApiGatewayLoadBalancedFargateServiceProps {
    */
   readonly vpc: ec2.IVpc;
   /**
+   * subnets for the ecs tasks
+   *
+   * @default - Public subnets if `assignPublicIp` is set, otherwise the first available one of Private, Isolated, Public, in that order.
+   */
+  readonly vpcSubnets?: ec2.SubnetSelection;
+  /**
    * The ECS Cluster.
    */
   readonly cluster: ecs.ICluster;
+  /**
+   * The desired number of instantiations of the task definition to keep running on the service.
+   *
+   * @default - When creating the service, default is 1; when updating the service,
+   * default uses the current task number.
+   */
+  readonly desiredCount?: number;
   /**
    * The discovery name of the cloud map service
    * @default 'default'
    */
   readonly discoveryName?: string;
-
   /**
    * The vpc link integration type for the API Gateway private integration
    *
    * @default VpcLinkIntegration.CLOUDMAP;
    */
   readonly vpcLinkIntegration?: VpcLinkIntegration;
+  /**
+   * The capacity provider strategies for the service.
+   *
+   * @default - [
+      { capacityProvider: 'FARGATE_SPOT', base: 2, weight: 50 },
+      { capacityProvider: 'FARGATE', weight: 50 },
+    ];
+   */
+  readonly capacityProviderStrategies?: ecs.CapacityProviderStrategy[];
 }
 
 export class CloudMapIntegration extends apigw.HttpRouteIntegration {
@@ -74,6 +95,11 @@ export class ApiGatewayLoadBalancedFargateService extends Construct {
   constructor(scope: Construct, id: string, props: ApiGatewayLoadBalancedFargateServiceProps) {
     super(scope, id);
 
+    const defaultCapacityProviderStrategy = [
+      { capacityProvider: 'FARGATE_SPOT', base: 2, weight: 50 },
+      { capacityProvider: 'FARGATE', weight: 50 },
+    ];
+
     const service = new ecs.FargateService(this, 'FargateService', {
       serviceConnectConfiguration: {
         namespace: props.cluster.defaultCloudMapNamespace ? undefined : this.createCloudMapNamespace(id).namespaceArn,
@@ -83,8 +109,9 @@ export class ApiGatewayLoadBalancedFargateService extends Construct {
       },
       taskDefinition: props.taskDefinition,
       cluster: props.cluster,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
-      assignPublicIp: true,
+      vpcSubnets: props.vpcSubnets,
+      desiredCount: props.desiredCount,
+      capacityProviderStrategies: props.capacityProviderStrategies ?? defaultCapacityProviderStrategy,
     });
 
     // we need look up cloudmapServiceArn with custom resource

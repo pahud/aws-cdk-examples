@@ -9,6 +9,17 @@ Amazon API Gateway allows you to integrate with VPC link and route traffic to se
 
 This constructs provisions API Gateway HTTP API with Fargate service and route the traffic throught a VPC link. By default, the `vpcLinkIntegration` type is Cloud Map and no ALB or NLB will be created.
 
+The default capacity provider strategy for the service is:
+
+```ts
+[
+  { capacityProvider: 'FARGATE_SPOT', base: 2, weight: 50 },
+  { capacityProvider: 'FARGATE', weight: 50 },
+]
+```
+This means the first 2 tasks will always be `FARGATE_SPOT` and 50-50 afterwards. You can customize that in the `capacityProviderStrategies` property.
+
+
 <img src=./images/apig-lb-fargate-service.svg>
 
 ## Example
@@ -36,3 +47,18 @@ new ApiGatewayLoadBalancedFargateService(stack, 'DemoService', {
   vpcLinkIntegration: VpcLinkIntegration.CLOUDMAP,
 });
 ```
+
+## Deploy the sample workload
+
+```ts
+$ yarn install
+$ npx cdk diff
+$ npx cdk deploy
+```
+
+## Destroy the sample workload
+
+```ts
+$ npx cdk destroy
+```
+
