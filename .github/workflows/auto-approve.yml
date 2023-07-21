@@ -4,7 +4,7 @@ name: auto-approve
 on: 
   pull_request_target:
     branches:
-      - '**/**'
+      - 'eic-endpoint'
 
 jobs:
   approve:
