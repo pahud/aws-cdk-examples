@@ -43,7 +43,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@aws-cdk/lambda-layer-kubectl-v26": "^2.0.1",
+    "@aws-cdk/lambda-layer-kubectl-v27": "^2.0.0",
     "aws-cdk-lib": "^2.80.0",
     "constructs": "^10.0.5"
   },
