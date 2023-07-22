@@ -1,4 +1,4 @@
-name: automerge
+name: auto-merge
 on:
   pull_request:
     types:
@@ -25,4 +25,5 @@ jobs:
         name: automerge
         uses: "pascalgn/automerge-action@v0.15.6"
         env:
-         GITHUB_TOKEN: "${{ secrets.AUTOMERGE_TOKEN }}"
+          MERGE_LABELS: 'auto-merge,!work in progress,!do not merge'
+          GITHUB_TOKEN: "${{ secrets.AUTOMERGE_TOKEN }}"
