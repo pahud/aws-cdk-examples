@@ -76,7 +76,7 @@
       "type": "build"
     },
     {
-      "name": "@aws-cdk/lambda-layer-kubectl-v26",
+      "name": "@aws-cdk/lambda-layer-kubectl-v27",
       "type": "runtime"
     },
     {

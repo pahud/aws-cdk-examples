@@ -4,7 +4,7 @@ aws_iam as iam,
  } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { getVpc } from './util';
-import { KubectlV26Layer as KubectlLayer } from '@aws-cdk/lambda-layer-kubectl-v26';
+import { KubectlV27Layer as KubectlLayer } from '@aws-cdk/lambda-layer-kubectl-v27';
 
 export class SingleClusterStack extends Stack {
   readonly cluster: eks.ICluster;
@@ -20,7 +20,7 @@ export class SingleClusterStack extends Stack {
       vpc,
       mastersRole,
       kubectlLayer: new KubectlLayer(this, 'KubectlLayer'),
-      version: eks.KubernetesVersion.V1_26,
+      version: eks.KubernetesVersion.V1_27,
     });
 
     // allow mastersRole to access console
