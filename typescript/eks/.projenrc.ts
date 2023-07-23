@@ -6,6 +6,6 @@ const project = new awscdk.AwsCdkTypeScriptApp({
   projenrcTs: true,
   deps: [
     '@aws-cdk/lambda-layer-kubectl-v27',
-  ]
+  ],
 });
 project.synth();
