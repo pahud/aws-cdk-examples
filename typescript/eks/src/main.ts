@@ -1,10 +1,11 @@
-import { App, Stack, StackProps,
-aws_eks as eks,
-aws_iam as iam,
- } from 'aws-cdk-lib';
+import { KubectlV27Layer as KubectlLayer } from '@aws-cdk/lambda-layer-kubectl-v27';
+import {
+  App, Stack, StackProps,
+  aws_eks as eks,
+  aws_iam as iam,
+} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { getVpc } from './util';
-import { KubectlV27Layer as KubectlLayer } from '@aws-cdk/lambda-layer-kubectl-v27';
 
 export class SingleClusterStack extends Stack {
   readonly cluster: eks.ICluster;
@@ -12,7 +13,7 @@ export class SingleClusterStack extends Stack {
     super(scope, id, props);
 
     const vpc = getVpc(this);
-    
+
     // create a scoped mastersRole
     const mastersRole = this.createMastersRole();
 
@@ -37,8 +38,8 @@ export class SingleClusterStack extends Stack {
         service: 'sts',
         region: '',
         resource: 'assumed-role',
-        resourceName: 'AWSReservedSSO_AdministratorAccess_c4188fabc1dd35a2/pahud'
-      }))
+        resourceName: 'AWSReservedSSO_AdministratorAccess_c4188fabc1dd35a2/pahud',
+      })),
     });
 
     mastersRole.assumeRolePolicy?.addStatements(new iam.PolicyStatement({
@@ -49,14 +50,14 @@ export class SingleClusterStack extends Stack {
           service: 'sts',
           region: '',
           resource: 'assumed-role',
-          resourceName: 'AWSReservedSSO_AdministratorAccess_c4188fabc1dd35a2/foo'
+          resourceName: 'AWSReservedSSO_AdministratorAccess_c4188fabc1dd35a2/foo',
         })),
         // arn:aws:sts::123456789012:user/pahud
         new iam.ArnPrincipal(Stack.of(this).formatArn({
           service: 'sts',
           region: '',
           resource: 'user',
-          resourceName: 'pahud'
+          resourceName: 'pahud',
         })),
       ],
     }));
@@ -67,11 +68,11 @@ export class SingleClusterStack extends Stack {
       actions: [
         'eks:Describe*',
         'eks:List*',
-        'eks:AccessKubernetesApi'
+        'eks:AccessKubernetesApi',
       ],
-      resources: [ this.cluster.clusterArn ],
-    }))
-  } 
+      resources: [this.cluster.clusterArn],
+    }));
+  }
 }
 
 const devEnv = { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION };
