@@ -31,7 +31,8 @@ project.eslint!.config.parserOptions.tsconfigRootDir = 'typescript/aws-imagebuil
 const tasksJson = project.tryFindObjectFile('.projen/tasks.json')!;
 tasksJson.addOverride('tasks.eslint.steps.0.exec', 'eslint --ext .ts,.tsx --fix --no-error-on-unmatched-pattern src test build-tools projenrc .projenrc.ts --parser-options={tsconfigRootDir:null}');
 
-const common_exclude = ['cdk.out', 'cdk.context.json', 'yarn-error.log'];
+const common_exclude = ['cdk.out', 'cdk.context.json', 'yarn-error.log', '.github', '!yarn.lock'];
+
 project.npmignore?.exclude(...common_exclude);
 project.gitignore.exclude(...common_exclude);
 

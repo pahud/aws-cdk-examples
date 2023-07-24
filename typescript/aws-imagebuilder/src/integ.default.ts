@@ -1,13 +1,12 @@
+import { readFileSync } from 'fs';
 import * as path from 'path';
 import {
-  App, Stack, Fn,
+  App, Stack,
   aws_iam as iam,
   aws_ecr as ecr,
-  aws_s3 as s3,
   aws_ec2 as ec2,
-  aws_s3_deployment as s3d,
 } from 'aws-cdk-lib';
-import { existsSync, readdirSync, readFileSync, lstatSync } from 'fs';
+import { Construct } from 'constructs';
 import { InfrastructureConfiguration, ImagePipeline } from './index';
 import { ContainerRecipe, ImageBuilderComponent, ImageBuilderComponentPlatform } from './recipe';
 
@@ -26,7 +25,7 @@ export class IntegTesting {
       roles: [role.roleName],
     });
 
-    const vpc = ec2.Vpc.fromLookup(stack, 'Vpc', { isDefault: true });
+    const vpc = this.getVpc(stack);
     const sg = new ec2.SecurityGroup(stack, 'SG', {
       vpc,
       allowAllOutbound: true,
@@ -96,6 +95,14 @@ export class IntegTesting {
 
     this.stack = [stack];
   }
+  private getVpc(scope: Construct): ec2.IVpc {
+    return scope.node.tryGetContext('use_default_vpc') === '1' ?
+      ec2.Vpc.fromLookup(scope, 'Vpc', { isDefault: true }) :
+      scope.node.tryGetContext('use_vpc_id') != undefined ?
+        ec2.Vpc.fromLookup(scope, 'Vpc', { vpcId: scope.node.tryGetContext('use_vpc_id') }) :
+        new ec2.Vpc(scope, 'Vpc', { natGateways: 1 });
+  }
 };
 
 new IntegTesting();
+
