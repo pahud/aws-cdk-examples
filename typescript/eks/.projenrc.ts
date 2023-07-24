@@ -8,4 +8,12 @@ const project = new awscdk.AwsCdkTypeScriptApp({
     '@aws-cdk/lambda-layer-kubectl-v27',
   ],
 });
+
+const common_exclude = ['cdk.out', 'cdk.context.json', 'yarn-error.log', '!yarn.lock'];
+project.npmignore?.exclude(...common_exclude);
+project.gitignore.exclude(...common_exclude);
+
+project.synth();
+
+
 project.synth();

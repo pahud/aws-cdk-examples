@@ -40,6 +40,8 @@
     "*.generated.ts",
     "coverage",
     "!.projenrc.ts",
+    "!projenrc/**/*.ts",
+    "!.projenrc.ts",
     "!projenrc/**/*.ts"
   ],
   "rules": {
@@ -222,6 +224,15 @@
     ]
   },
   "overrides": [
+    {
+      "files": [
+        ".projenrc.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-require-imports": "off",
+        "import/no-extraneous-dependencies": "off"
+      }
+    },
     {
       "files": [
         ".projenrc.ts"

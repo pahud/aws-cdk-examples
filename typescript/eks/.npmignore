@@ -22,3 +22,7 @@ tsconfig.tsbuildinfo
 !/assets/
 cdk.out/
 .cdk.staging/
+cdk.out
+cdk.context.json
+yarn-error.log
+!yarn.lock
