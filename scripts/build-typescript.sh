@@ -1,5 +1,8 @@
 #!/bin/bash
-# triggered by scripts/build-${buildlang}.sh $path2 where $path2 is the directory under typescripts
+#
+# This script is triggered from `build-pull-request.yml` with scripts/build-${buildlang}.sh PATH where PATH is the directory under `typescripts`.
+# Essentially, we cd into the project directory and install/build/test with yarn or npm followed by cdk synth.
+#
 set -euxo pipefail
 scriptdir=$(cd $(dirname $0) && pwd)
 projectname="$1"
