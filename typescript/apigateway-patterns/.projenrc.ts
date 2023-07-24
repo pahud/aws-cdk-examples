@@ -17,7 +17,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
     '@aws-cdk/aws-lambda-python-alpha@^2.80.0-alpha.0',
   ],
   devDeps: [
-    'aws-cdk@^2.80.0',
+    'aws-cdk@2.80.0',
   ],
 });
 
@@ -36,7 +36,7 @@ new JsonFile(project, 'cdk.json', {
   },
 });
 
-const common_exclude = ['cdk.out', 'cdk.context.json', 'yarn-error.log', '.github'];
+const common_exclude = ['cdk.out', 'cdk.context.json', 'yarn-error.log', '.github', '!yarn.lock'];
 project.npmignore?.exclude(...common_exclude);
 project.gitignore.exclude(...common_exclude);
 
