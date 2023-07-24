@@ -1,4 +1,4 @@
-import { KubectlV27Layer as KubectlLayer } from '@aws-cdk/lambda-layer-kubectl-v27';
+import { KubectlV27Layer } from '@aws-cdk/lambda-layer-kubectl-v27';
 import {
   App, Stack, StackProps,
   aws_eks as eks,
@@ -20,7 +20,7 @@ export class SingleClusterStack extends Stack {
     this.cluster = new eks.Cluster(this, 'Cluster', {
       vpc,
       mastersRole,
-      kubectlLayer: new KubectlLayer(this, 'KubectlLayer'),
+      kubectlLayer: new KubectlV27Layer(this, 'KubectlLayer'),
       version: eks.KubernetesVersion.V1_27,
     });
 
