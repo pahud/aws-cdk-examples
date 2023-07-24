@@ -1,7 +1,6 @@
 import * as path from 'path';
 import * as apigw from '@aws-cdk/aws-apigatewayv2-alpha';
 import * as lambdaPython from '@aws-cdk/aws-lambda-python-alpha';
-
 import {
   CustomResource,
   aws_ecs as ecs,
@@ -10,8 +9,10 @@ import {
   aws_lambda as lambda,
   aws_servicediscovery as sd,
   custom_resources as cr,
+  aws_certificatemanager as acm,
   CfnOutput,
 } from 'aws-cdk-lib';
+import { DomainNameOptions } from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
 
 /**
@@ -22,6 +23,11 @@ export enum VpcLinkIntegration {
   NLB = 'NLB',
   ALB = 'ALB',
 };
+
+export interface DefaultDomainNameOptions {
+  readonly certificate: acm.Certificate;
+  readonly domainName: string;
+}
 
 export interface ApiGatewayLoadBalancedFargateServiceProps {
   /**
@@ -69,6 +75,10 @@ export interface ApiGatewayLoadBalancedFargateServiceProps {
     ];
    */
   readonly capacityProviderStrategies?: ecs.CapacityProviderStrategy[];
+  /**
+   * defaultDomainName:?
+   */
+  readonly defaultDomainName?: DomainNameOptions;
 }
 
 export class CloudMapIntegration extends apigw.HttpRouteIntegration {
@@ -92,9 +102,12 @@ export class CloudMapIntegration extends apigw.HttpRouteIntegration {
 }
 
 export class ApiGatewayLoadBalancedFargateService extends Construct {
+  readonly props: ApiGatewayLoadBalancedFargateServiceProps;
+  readonly regionalDomainName?: string;
   constructor(scope: Construct, id: string, props: ApiGatewayLoadBalancedFargateServiceProps) {
     super(scope, id);
 
+    this.props = props;
     const defaultCapacityProviderStrategy = [
       { capacityProvider: 'FARGATE_SPOT', base: 2, weight: 50 },
       { capacityProvider: 'FARGATE', weight: 50 },
@@ -150,15 +163,32 @@ export class ApiGatewayLoadBalancedFargateService extends Construct {
 
     service.connections.allowFrom(ec2.Peer.ipv4(props.vpc.vpcCidrBlock), ec2.Port.tcp(80));
 
+    const customDomainName = this.createDomainName('DefaultDomainName');
+    this.regionalDomainName = customDomainName.regionalDomainName;
     const api = new apigw.HttpApi(this, 'HttpApi', {
       defaultIntegration: new CloudMapIntegration(cloudmapServiceArn, vpcLink.vpcLinkId),
+      defaultDomainMapping: props.defaultDomainName ? {
+        domainName: customDomainName,
+      } : undefined,
     });
 
     new CfnOutput(this, 'ApiEndpoint', { value: api.apiEndpoint });
+    if (props.defaultDomainName) {
+      new CfnOutput(this, 'CNAMEMessage', {
+        value: `Make sure to CNAME ${props.defaultDomainName.domainName} to ${this.regionalDomainName} in your DNS registry`,
+      });
+      new CfnOutput(this, 'DefaultDomainNameURL', { value: `https://${props.defaultDomainName.domainName}` });
+    }
   }
   private createCloudMapNamespace(id: string): sd.INamespace {
     return new sd.HttpNamespace(this, `httpNameSpace${id}`, {
       name: `httpNameSpace${id}`,
+    });
+  };
+  private createDomainName(id: string): apigw.DomainName {
+    return new apigw.DomainName(this, id, {
+      certificate: this.props.defaultDomainName!.certificate,
+      domainName: this.props.defaultDomainName!.domainName,
     });
   }
 }
