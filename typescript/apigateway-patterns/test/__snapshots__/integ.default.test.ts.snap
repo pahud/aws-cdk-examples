@@ -11,6 +11,26 @@ exports[`default validation 1`] = `
         ],
       },
     },
+    "DemoServiceCNAMEMessageD3B41658": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "Make sure to CNAME demo.pahud.dev to ",
+            {
+              "Fn::GetAtt": [
+                "DemoServiceDefaultDomainName6E43507B",
+                "RegionalDomainName",
+              ],
+            },
+            " in your DNS registry",
+          ],
+        ],
+      },
+    },
+    "DemoServiceDefaultDomainNameURL3B80B7C2": {
+      "Value": "https://demo.pahud.dev",
+    },
   },
   "Parameters": {
     "BootstrapVersion": {
@@ -20,6 +40,25 @@ exports[`default validation 1`] = `
     },
   },
   "Resources": {
+    "Certificate4E7ABB08": {
+      "Properties": {
+        "DomainName": "*.pahud.dev",
+        "DomainValidationOptions": [
+          {
+            "DomainName": "*.pahud.dev",
+            "ValidationDomain": "pahud.dev",
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "integ-testing/Certificate",
+          },
+        ],
+        "ValidationMethod": "EMAIL",
+      },
+      "Type": "AWS::CertificateManager::Certificate",
+    },
     "Cluster3DA9CCBA": {
       "Properties": {
         "CapacityProviders": [
@@ -45,6 +84,20 @@ exports[`default validation 1`] = `
     },
     "ClusterEB0386A7": {
       "Type": "AWS::ECS::Cluster",
+    },
+    "DemoServiceDefaultDomainName6E43507B": {
+      "Properties": {
+        "DomainName": "demo.pahud.dev",
+        "DomainNameConfigurations": [
+          {
+            "CertificateArn": {
+              "Ref": "Certificate4E7ABB08",
+            },
+            "EndpointType": "REGIONAL",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGatewayV2::DomainName",
     },
     "DemoServiceFargateService96BA427F": {
       "Properties": {
@@ -208,6 +261,9 @@ exports[`default validation 1`] = `
       "Type": "AWS::ApiGatewayV2::Integration",
     },
     "DemoServiceHttpApiDefaultStage1EB1F7EA": {
+      "DependsOn": [
+        "DemoServiceDefaultDomainName6E43507B",
+      ],
       "Properties": {
         "ApiId": {
           "Ref": "DemoServiceHttpApi6F105817",
@@ -216,6 +272,22 @@ exports[`default validation 1`] = `
         "StageName": "$default",
       },
       "Type": "AWS::ApiGatewayV2::Stage",
+    },
+    "DemoServiceHttpApiDefaultStageintegtestingDemoServiceDefaultDomainNameundefined7481A46C": {
+      "DependsOn": [
+        "DemoServiceDefaultDomainName6E43507B",
+        "DemoServiceHttpApiDefaultStage1EB1F7EA",
+      ],
+      "Properties": {
+        "ApiId": {
+          "Ref": "DemoServiceHttpApi6F105817",
+        },
+        "DomainName": {
+          "Ref": "DemoServiceDefaultDomainName6E43507B",
+        },
+        "Stage": "$default",
+      },
+      "Type": "AWS::ApiGatewayV2::ApiMapping",
     },
     "DemoServiceOnEventHandler923A8391": {
       "DependsOn": [

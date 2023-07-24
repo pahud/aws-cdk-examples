@@ -2,9 +2,10 @@ import {
   App, Stack,
   aws_ecs as ecs,
   aws_ec2 as ec2,
+  aws_certificatemanager as acm,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { ApiGatewayLoadBalancedFargateService, VpcLinkIntegration } from './agw-balanced-fargate-service';
+import { ApiGatewayLoadBalancedFargateService } from './agw-balanced-fargate-service';
 
 export class IntegTesting {
   readonly stack: Stack[];
@@ -42,7 +43,10 @@ export class IntegTesting {
       cluster,
       taskDefinition,
       desiredCount: 2,
-      vpcLinkIntegration: VpcLinkIntegration.CLOUDMAP,
+      defaultDomainName: {
+        domainName: 'demo.pahud.dev',
+        certificate: this.getCertificate(stack, '*.pahud.dev'),
+      },
     });
     this.stack = [stack];
   }
@@ -52,6 +56,13 @@ export class IntegTesting {
       scope.node.tryGetContext('use_vpc_id') != undefined ?
         ec2.Vpc.fromLookup(scope, 'Vpc', { vpcId: scope.node.tryGetContext('use_vpc_id') }) :
         new ec2.Vpc(scope, 'Vpc', { natGateways: 1 });
+  }
+  private getCertificate(scope: Construct, certificateDomainName?: string): acm.ICertificate {
+    return scope.node.tryGetContext('acm_cert_arn') ?
+      acm.Certificate.fromCertificateArn(scope, 'importedCertificate', Stack.of(scope).node.tryGetContext('acm_cert_arn')) :
+      new acm.Certificate(scope, 'Certificate', {
+        domainName: certificateDomainName!,
+      });
   }
 };
 
