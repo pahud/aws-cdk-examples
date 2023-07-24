@@ -55,3 +55,5 @@ tsconfig.json
 cdk.out
 cdk.context.json
 yarn-error.log
+.github
+!yarn.lock
