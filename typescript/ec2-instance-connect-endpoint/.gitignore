@@ -55,3 +55,4 @@ tsconfig.json
 cdk.out
 cdk.context.json
 yarn-error.log
+!yarn.lock
