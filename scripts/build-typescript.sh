@@ -22,7 +22,7 @@ function build_it() {
       echo "yarn.lock file found. Running 'yarn install'..."
       yarn install --frozen-lockfile
       yarn build
-      yarn test
+      npm run --if-present test
   # Check if package-lock.json exists
   elif [ -f "package-lock.json" ]; then
       echo "package-lock.json file found. Running 'npm ci'..."
@@ -30,12 +30,12 @@ function build_it() {
       echo "Running 'npm build'..."
       npm run build
       echo "Running 'npm test'..."
-      npm test
+      npm run --if-present test
   else
       echo "No lock files found (yarn.lock or package-lock.json) but package.json available. Running 'yarn install'... "
       yarn install
       yarn build
-      yarn test
+      npm run --if-present test
   fi
   # try cdk synth
   $scriptdir/synth.sh
