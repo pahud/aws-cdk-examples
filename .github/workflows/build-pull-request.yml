@@ -44,7 +44,7 @@ jobs:
       - name: list changed files
         if: steps.changed-files-specific.outputs.any_changed == 'true'
         run: |
-          for file in ${{ steps.changed-files-specific.outputs.all_changed_files }}; do
+          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             echo "$file was changed"
           done
       - name: Build changed files
@@ -57,12 +57,14 @@ jobs:
           echo "# Build summary for ${buildlang}" >> $GITHUB_STEP_SUMMARY
           buildpath=""
           # For each file that is in the changed set
-          echo "Echo all_modified_files"
-          echo ${{ steps.changed-files-specific.outputs.all_modified_files }}
           for file in ${{ steps.changed-files-specific.outputs.all_modified_files }}
           do
+            echo "processing ${file}"
             # Split the path into the language, example, and 
             IFS="/" read path1 path2 extra <<<"$file"
+            # $path1 is the language name e.g. 'typescript'
+            # $path2 is the fist directory under the language
+            # $extra is everything else after path2
             if [[ $path1 != $buildlang ]]; then
               continue
             fi 
@@ -75,7 +77,11 @@ jobs:
             # make sure there's nothing funny left over.
             git clean -dfx
 
-            scripts/build-${buildlang}.sh $path2
+            # we should pass both $path2 and $extra to the build script
+            # for example:
+            # scripts/build-typescript.sh ecs example-name/index.ts for typescripts/ecs/example/index.ts 
+            # scripts/build-typescript.sh example index.ts for typescripts/example/index.ts 
+            scripts/build-${buildlang}.sh $path2 $extra
             
             if [[ $? == 0 ]]; then
               echo "- :o: $buildpath" >> $GITHUB_STEP_SUMMARY
