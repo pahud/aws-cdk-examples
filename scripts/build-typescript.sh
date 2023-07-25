@@ -45,7 +45,7 @@ function build_it() {
 IFS='/' read -ra dirs <<< "$given_path"
 
 # Traverse the directories from top down and check for package.json
-current_path=""
+current_path="typescript"
 
 # Find the first package.json and build up from the directory of it.
 # For example:
