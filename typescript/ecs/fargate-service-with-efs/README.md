@@ -1,4 +1,5 @@
 # Fargate Service using EFS
+
 This example creates a Public Facing load balanced Fargate service with an EFS Filesystem mount to demo the
 recently added feature to Fargate.
 
