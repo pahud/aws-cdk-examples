@@ -27,11 +27,11 @@ export class MongoDBAtlasBootstrapProps {
 */
 export class MongoDBAtlasBootstrap extends Construct {
   readonly role: iam.IRole;
-  readonly profile: string;
+  readonly secretProfile: string;
   constructor(scope: Construct, id: string, props?: MongoDBAtlasBootstrapProps) {
     super(scope, id);
 
-    this.profile = props?.secretProfile ?? 'default';
+    this.secretProfile = props?.secretProfile ?? 'default';
     this.role = new iam.Role(this, 'CfnExecRole', {
       assumedBy: new iam.ServicePrincipal('resources.cloudformation.amazonaws.com'),
       roleName: props?.roleName,
@@ -41,7 +41,7 @@ export class MongoDBAtlasBootstrap extends Construct {
     });
 
     if (props?.secretProfile) {
-      new MongoSecretProfile(this, 'MongoSecretProfile', this.profile );
+      new MongoSecretProfile(this, 'MongoSecretProfile', this.secretProfile );
     }
     for (let x of ['Cluster', 'Project', 'DatabaseUser', 'ProjectIpAccessList'] ) {
       new CfnOutput(this, `ActivateCmd${x}`, { value: `aws cloudformation activate-type --type-name MongoDB::Atlas::${x} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ${this.role.roleArn}` });
