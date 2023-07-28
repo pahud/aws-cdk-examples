@@ -6,7 +6,7 @@ on:
     types:
       - opened
       - reopened
-
+      - labeled
 
 jobs:
   approve:
@@ -18,5 +18,3 @@ jobs:
       - uses: hmarr/auto-approve-action@v3.2.1
         with:
           review-message: "Auto approved automated PR"
-#         with:
-#           github-token: ${{ secrets.GITHUB_TOKEN }}
