@@ -323,14 +323,14 @@ exports[`default validation 2`] = `
     },
   },
   "Resources": {
-    "atlasbasicclusteratlasbasicABBB5484": {
+    "atlasbasicmongodbdemostackclusteratlasbasicmongodbdemostackFA21572E": {
       "Properties": {
         "ClusterType": "REPLICASET",
-        "Name": "atlas-cluster-3800654",
+        "Name": "cluster-mongodb-demo-stack",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicprojectatlasbasic14E40BFE",
+            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
             "Id",
           ],
         },
@@ -358,14 +358,14 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::Cluster",
     },
-    "atlasbasicdbuseratlasbasic3D4DABF6": {
+    "atlasbasicmongodbdemostackdbuseratlasbasicmongodbdemostackBE146785": {
       "Properties": {
         "DatabaseName": "admin",
         "Password": "atlas-pwd",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicprojectatlasbasic14E40BFE",
+            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
             "Id",
           ],
         },
@@ -379,7 +379,7 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::DatabaseUser",
     },
-    "atlasbasicipaccesslistatlasbasic1ACB5830": {
+    "atlasbasicmongodbdemostackipaccesslistatlasbasicmongodbdemostack66DBC4C7": {
       "Properties": {
         "AccessList": [
           {
@@ -390,16 +390,17 @@ exports[`default validation 2`] = `
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicprojectatlasbasic14E40BFE",
+            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
             "Id",
           ],
         },
       },
       "Type": "MongoDB::Atlas::ProjectIpAccessList",
     },
-    "atlasbasicprojectatlasbasic14E40BFE": {
+    "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0": {
       "Properties": {
-        "Name": "atlas-project-3420371",
+        "Name": "project-mongodb-demo-stack",
+        "OrgId": "mock_id",
         "Profile": "my-mongo-profile",
       },
       "Type": "MongoDB::Atlas::Project",

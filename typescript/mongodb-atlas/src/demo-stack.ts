@@ -1,23 +1,26 @@
-import { AtlasBasic } from '@mongodbatlas-awscdk/atlas-basic';
 import { Stack, StackProps } from 'aws-cdk-lib';
+import { AtlasBasic } from 'awscdk-resources-mongodbatlas';
 import { Construct } from 'constructs';
 
 export interface DemoStackProps extends StackProps {
   /**
-   * profile name
+   * profile name for the secret.
    * @default 'default'
    */
-  readonly profile?: string;
+  readonly secretProfile?: string;
+  readonly clusterName?: string;
+  readonly projectName?: string;
+  /**
+   * The MongoDB Atlas organization ID.
+   */
+  readonly orgId: string;
 }
 
 export class DemoStack extends Stack {
-  constructor(scope: Construct, id: string, props?: DemoStackProps) {
+  constructor(scope: Construct, id: string, props: DemoStackProps) {
     super(scope, id, props);
 
-    const orgId = this.node.tryGetContext('MONGODB_ATLAS_ORG_ID') || process.env.MONGODB_ATLAS_ORG_ID;
-    if (!orgId && process.env.CI != undefined ) {
-      throw new Error('orgId not found - define MONGODB_ATLAS_ORG_ID as the context variable or environment variable');
-    }
+    const orgId = props?.orgId;
 
     const replicationSpecs = [
       {
@@ -41,10 +44,16 @@ export class DemoStack extends Stack {
       },
     ];
 
-    new AtlasBasic(this, 'atlas-basic', {
-      profile: props?.profile ?? 'default',
-      clusterProps: { replicationSpecs },
-      projectProps: { orgId },
+    new AtlasBasic(this, `atlas-basic-${id}`, {
+      profile: props?.secretProfile ?? 'default',
+      clusterProps: {
+        replicationSpecs,
+        name: props?.clusterName ?? `cluster-${id}`,
+      },
+      projectProps: {
+        orgId,
+        name: props?.projectName ?? `project-${id}`,
+      },
       ipAccessListProps: {
         accessList: [
           { ipAddress: '0.0.0.0/0', comment: 'My first IP address' },

@@ -9,17 +9,19 @@ export class IntegTesting {
     const env = { region: process.env.CDK_DEFAULT_REGION, account: process.env.CDK_DEFAULT_ACCOUNT };
     const bootstrapStack = new Stack(app, 'mongo-cdk-bootstrap', { env });
 
+    const secretProfile = 'my-mongo-profile';
     // bootstrap by creating the cfn extension execution role and profile secret.
-    const bootstrap = new MongoDBAtlasBootstrap(bootstrapStack, 'mongoCdkBootstrap', {
+    new MongoDBAtlasBootstrap(bootstrapStack, 'mongoCdkBootstrap', {
       roleName: 'cfn-ext-exec-role-for-mongo',
-      secretProfile: 'my-mongo-profile',
+      secretProfile,
     });
 
     const demoStack = new DemoStack(app, 'mongodb-demo-stack', {
-      profile: bootstrap.profile,
+      secretProfile,
+      orgId: process.env.MONGODB_ATLAS_ORG_ID || 'mock_id',
     });
     this.stack = [bootstrapStack, demoStack];
-  }
+  };
 };
 
 new IntegTesting();
