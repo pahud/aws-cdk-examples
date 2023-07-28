@@ -1,4 +1,4 @@
-name: upgrade-montodb-atlas
+name: upgrade-mongodb-atlas
 env:
   branch_name: pahud/mongodb-atlas
   folder_name: mongodb-atlas
