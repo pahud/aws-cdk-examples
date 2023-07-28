@@ -326,7 +326,7 @@ exports[`default validation 2`] = `
     "atlasbasicclusteratlasbasicABBB5484": {
       "Properties": {
         "ClusterType": "REPLICASET",
-        "Name": "atlas-cluster-5297508",
+        "Name": "atlas-cluster-6398930",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
@@ -399,7 +399,7 @@ exports[`default validation 2`] = `
     },
     "atlasbasicprojectatlasbasic14E40BFE": {
       "Properties": {
-        "Name": "atlas-project-7243397",
+        "Name": "atlas-project-1729827",
         "Profile": "my-mongo-profile",
       },
       "Type": "MongoDB::Atlas::Project",
