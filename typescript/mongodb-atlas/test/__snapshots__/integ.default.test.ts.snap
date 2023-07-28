@@ -1,0 +1,436 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`default validation 1`] = `
+{
+  "Outputs": {
+    "mongoCdkBootstrapActivateCmdClusterC0C2877F": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapActivateCmdDatabaseUser9D62210B": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::DatabaseUser --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapActivateCmdProjectD99573BE": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::Project --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapActivateCmdProjectIpAccessList3C42A46D": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::ProjectIpAccessList --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapMongoSecretProfileSecretNameC7B5BCEE": {
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Fn::Select": [
+                0,
+                {
+                  "Fn::Split": [
+                    "-",
+                    {
+                      "Fn::Select": [
+                        6,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "-",
+                    {
+                      "Fn::Select": [
+                        6,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              "Fn::Select": [
+                2,
+                {
+                  "Fn::Split": [
+                    "-",
+                    {
+                      "Fn::Select": [
+                        6,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapMongoSecretProfileUpdateSecretCommand31F9E864": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws secretsmanager update-secret --secret-id ",
+            {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Fn::Select": [
+                      0,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      1,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      2,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+            " --secret-string "{\\"PublicKey\\":\\"\${MONGO_ATLAS_PUBLIC_KEY}\\",\\"PrivateKey\\":\\"\${MONGO_ATLAS_PRIVATE_KEY}\\"}"",
+          ],
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "mongoCdkBootstrapCfnExecRole6DEA467E": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "resources.cloudformation.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/AdministratorAccess",
+              ],
+            ],
+          },
+        ],
+        "RoleName": "cfn-ext-exec-role-for-mongo",
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "mongoCdkBootstrapMongoSecretProfilemymongoprofile24B3A06F": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Name": "cfn/atlas/profile/my-mongo-profile",
+        "SecretString": "{"PublicKey":"changeMe", "PrivateKey": "changeMe"}",
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`default validation 2`] = `
+{
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "atlasbasicclusteratlasbasicABBB5484": {
+      "Properties": {
+        "ClusterType": "REPLICASET",
+        "Name": "atlas-cluster-3800654",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "atlasbasicprojectatlasbasic14E40BFE",
+            "Id",
+          ],
+        },
+        "ReplicationSpecs": [
+          {
+            "AdvancedRegionConfigs": [
+              {
+                "AnalyticsSpecs": {
+                  "EbsVolumeType": "STANDARD",
+                  "InstanceSize": "M10",
+                  "NodeCount": 1,
+                },
+                "ElectableSpecs": {
+                  "EbsVolumeType": "STANDARD",
+                  "InstanceSize": "M10",
+                  "NodeCount": 3,
+                },
+                "Priority": 7,
+                "RegionName": "US_EAST_1",
+              },
+            ],
+            "NumShards": 1,
+          },
+        ],
+      },
+      "Type": "MongoDB::Atlas::Cluster",
+    },
+    "atlasbasicdbuseratlasbasic3D4DABF6": {
+      "Properties": {
+        "DatabaseName": "admin",
+        "Password": "atlas-pwd",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "atlasbasicprojectatlasbasic14E40BFE",
+            "Id",
+          ],
+        },
+        "Roles": [
+          {
+            "DatabaseName": "admin",
+            "RoleName": "atlasAdmin",
+          },
+        ],
+        "Username": "atlas-user",
+      },
+      "Type": "MongoDB::Atlas::DatabaseUser",
+    },
+    "atlasbasicipaccesslistatlasbasic1ACB5830": {
+      "Properties": {
+        "AccessList": [
+          {
+            "Comment": "My first IP address",
+            "IPAddress": "0.0.0.0/0",
+          },
+        ],
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "atlasbasicprojectatlasbasic14E40BFE",
+            "Id",
+          ],
+        },
+      },
+      "Type": "MongoDB::Atlas::ProjectIpAccessList",
+    },
+    "atlasbasicprojectatlasbasic14E40BFE": {
+      "Properties": {
+        "Name": "atlas-project-3420371",
+        "Profile": "my-mongo-profile",
+      },
+      "Type": "MongoDB::Atlas::Project",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
