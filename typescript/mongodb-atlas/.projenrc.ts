@@ -9,11 +9,7 @@ const project = new awscdk.AwsCdkConstructLibrary({
   projenrcTs: true,
   repositoryUrl: 'https://github.com/aws-samples/aws-cdk-examples.git',
   deps: [
-    '@mongodbatlas-awscdk/atlas-basic',
-    '@mongodbatlas-awscdk/cluster',
-    '@mongodbatlas-awscdk/database-user',
-    '@mongodbatlas-awscdk/project',
-    '@mongodbatlas-awscdk/project-ip-access-list',
+    'awscdk-resources-mongodbatlas',
   ],
   devDeps: [
     'aws-cdk@2.80.0',

@@ -119,23 +119,7 @@
       "type": "peer"
     },
     {
-      "name": "@mongodbatlas-awscdk/atlas-basic",
-      "type": "runtime"
-    },
-    {
-      "name": "@mongodbatlas-awscdk/cluster",
-      "type": "runtime"
-    },
-    {
-      "name": "@mongodbatlas-awscdk/database-user",
-      "type": "runtime"
-    },
-    {
-      "name": "@mongodbatlas-awscdk/project",
-      "type": "runtime"
-    },
-    {
-      "name": "@mongodbatlas-awscdk/project-ip-access-list",
+      "name": "awscdk-resources-mongodbatlas",
       "type": "runtime"
     }
   ],

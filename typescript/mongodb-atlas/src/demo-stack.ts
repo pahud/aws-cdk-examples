@@ -1,5 +1,5 @@
-import { AtlasBasic } from '@mongodbatlas-awscdk/atlas-basic';
 import { Stack, StackProps } from 'aws-cdk-lib';
+import { AtlasBasic } from 'awscdk-resources-mongodbatlas';
 import { Construct } from 'constructs';
 
 export interface DemoStackProps extends StackProps {
