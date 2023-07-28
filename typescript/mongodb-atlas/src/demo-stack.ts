@@ -9,6 +9,7 @@ export interface DemoStackProps extends StackProps {
    */
   readonly secretProfile?: string;
   readonly clusterName?: string;
+  readonly projectName?: string;
   /**
    * The MongoDB Atlas organization ID.
    */
@@ -49,7 +50,10 @@ export class DemoStack extends Stack {
         replicationSpecs,
         name: props?.clusterName ?? `cluster-${id}`,
       },
-      projectProps: { orgId },
+      projectProps: {
+        orgId,
+        name: props?.projectName ?? `project-${id}`,
+      },
       ipAccessListProps: {
         accessList: [
           { ipAddress: '0.0.0.0/0', comment: 'My first IP address' },

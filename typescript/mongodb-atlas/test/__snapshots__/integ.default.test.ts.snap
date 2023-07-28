@@ -399,7 +399,7 @@ exports[`default validation 2`] = `
     },
     "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0": {
       "Properties": {
-        "Name": "atlas-project-1804790",
+        "Name": "project-mongodb-demo-stack",
         "OrgId": "mock_id",
         "Profile": "my-mongo-profile",
       },
