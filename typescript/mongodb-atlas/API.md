@@ -1,4 +1,4 @@
-# MongoDB Atlas with CDK
+# MongoDB Atlas Reference Architecture with AWS CDK
 
 This example walks you through building MongoDB Atlas cluster with AWS CDK.
 
@@ -20,9 +20,9 @@ This examples aims to provide a CDK-native experience to streamline your first M
 
 If it's your first time using AWS CDK to create MongoDB Atlas cluster, you will need to configure your environment as described above. This example comes with a `MongoDBAtlasBootstrap` construct that generates and configures everything for you as mentioned above including:
 
-1. Create an cloudformation extension IAM execution role.
-2. Create a custo secret to store the public and private API keys.
-3. Allow the execution role to access the Secret.
+1. Create a cloudformation extension IAM execution role and required permissions(see [doc](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html)).
+2. Create a custom profile secret to store public and private API keys(see [doc](https://github.com/mongodb/mongodbatlas-cloudformation-resources#1-configure-your-mongodb-atlas-api-keys)).
+3. Allow the execution role to access the profile secret.
 
 ```sh
 $ cd typescript/mongodb-atlas
@@ -35,7 +35,7 @@ Configure your AWS CLI and make sure it authenticates with AWS.
 $ aws sts get-caller-identity
 ```
 
-Now, let's bootstrap the extensions to create the IAM execution role and secret.
+Now, let's bootstrap the extensions to create the IAM execution role and the profile secret.
 
 ```sh
 $ npx cdk diff mongo-cdk-bootstrap
@@ -50,11 +50,21 @@ $ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publish
 ```
 (You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer` and `MongoDB::Atlas::NetworkPeering`)
 
+Alternatively, if you are comfortable using for loop in the shell:
+
+```sh
+$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering
+> do
+> aws cloudformation activate-type --type-name MongoDB::Atlas::${i} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
+> done
+```
+(replace `123456789012` with your AWS account ID)
+
 Last but not least, update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
-> Make sure the user of the API key has the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we will creat a new project in a specified organization.
+> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in the organization.
 
-Update the key pair into the generated secret:
+Update the key pair in the generated secret with AWS CLI:
 
 ```sh
 $ export MONGO_ATLAS_PUBLIC_KEY='your_public_key'
@@ -63,22 +73,22 @@ $ export MONGO_ATLAS_PRIVATE_KEY='your_private_key'
 $ aws secretsmanager update-secret --secret-id cfn/atlas/profile/my-mongo-profile --secret-string "{\"PublicKey\":\"${MONGO_ATLAS_PUBLIC_KEY}\",\"PrivateKey\":\"${MONGO_ATLAS_PRIVATE_KEY}\"}"
 ```
 
-Now your are all set. Let's create the sample cluster.
+Your are all set.
 
 # Create the Cluster with VPC Peering
 
-Now, Let's deploy the `mongodb-demo-stack` that creates the cluster with the `AtlasBasic` L3 construct. What happens when you deploy the Demo stack:
+Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasBasic` L3 construct. What happens when you deploy the Demo stack:
 
 1. A new `Project` will be created.
 2. A new `DatabaseUser` will be created.
 3. A new `Cluster` will be created.
 4. A new `NetworkContainer` will be created.
 5. A new `NetworkPeering` will be created.
+6. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
 
-On creation complete, your VPC will receive a peering request from the MongoDB cluster VPC. Go to AWS console VPC peering connections to accept the peering request.
+On creation complete, the VPC peering will be established without any manual approval.
 
-Read the source for more details in [demo.ts](./src/demo.ts).
-
+Read the source of [demo.ts](./src/demo.ts) for more details.
 
 ```ts
 const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
@@ -94,7 +104,7 @@ new Demo(demoStack, 'mongodb-demo', {
 });
 ```
 
-The `getVpc()` method will use the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
+The `getVpc()` method will either reutrn the existing VPC or create and return a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
 
 
 The following sample deploy the MongoDB Atlas clsuter and VPC peering with my default VPC:
@@ -104,18 +114,17 @@ $ export MONGODB_ATLAS_ORG_ID='your_org_id'
 $ npx cdk deploy mongodb-demo-stack -c use_default_vpc=1
 ```
 
-
-On deployment completed, you should be able to see a M10 cluster in your MongoDB Atlas console in the relevant organization and project.
+On deployment completed, check out the cluster in your MongoDB Atlas console:
 
 <img src=./images/cluster.png>
 
-As this is a cluster with VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
 
-# Connect to your cluster from your VPC
+# Connect your cluster from your VPC
 
 Generate the password for the default database user `atlas-user ` and get the connection URI from the console.
 
-For example, connect to the cluster from Amazon Linux 2023 EC2 instance using `mongosh`:
+For example, connect to the cluster from an Amazon Linux instance using `mongosh`:
 
 ```sh
 $ mongosh "mongodb+srv://cluster-mongodb-demo.5y22n.mongodb.net/" --apiVersion 1 --username atlas-user
@@ -177,7 +186,7 @@ Now, your MongoDB client in your VPC should be able to access the provisioned cl
 $ npx cdk destroy mongodb-demo-stack
 ```
 
-2. Destroy the VPC peering and additional routing rules from the AWS console.
+2. Make sure the VPC peering is deleted and manually remove additional routing through the peering from the AWS console.
 
 
 3. (Optional) Destroy the bootstrap stack(cloudformation execution role and secret):
@@ -188,6 +197,11 @@ $ npx cdk destroy mongo-cdk-bootstrap
 
 
 # FAQ
+**Question: Do I need to manually accept the VPC peering from AWS console**
+
+Answer: No, the CDK custom resource does this for you. But you need to manually add an additional
+route to the `atlasCidr` through the vpc peering connection. AWS CDK does not do that for you.
+
 **Question: Should I add the billing method before I am allowed to create the cluster?**
 
 Answer: Yes you have to add a default billing method in the MongoDB Atlas console.
