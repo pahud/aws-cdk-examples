@@ -1,4 +1,4 @@
-name: upgrade-aws-image-builder
+name: upgrade-aws-imagebuilder
 env:
   branch_name: pahud/aws-imagebuilder
   folder_name: aws-imagebuilder
