@@ -1,7 +1,12 @@
+import * as path from 'path';
 import {
-  Aws,
+  Aws, Stack,
   CfnOutput,
   aws_ec2 as ec2,
+  custom_resources as cr,
+  aws_lambda as lambda,
+  aws_iam as iam,
+  CustomResource,
 } from 'aws-cdk-lib';
 import {
   AtlasBasic, CfnNetworkContainer, CfnNetworkPeering,
@@ -114,9 +119,65 @@ export class Demo extends Construct {
       });
       new CfnOutput(this, 'VpcPeeringConnectionId', { value: peering.attrConnectionId });
       this.cluster.addDependency(container);
+
+      // create the custom resource to accept the peering request
+      const provider = new cr.Provider(this, 'VpcPeeringProvider', {
+        onEventHandler: new lambda.Function(this, 'VpcPeeringHandler', {
+          runtime: lambda.Runtime.PYTHON_3_10,
+          code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+          handler: 'vpc-peering-handler.on_event',
+        }),
+      });
+      provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'ec2:AcceptVpcPeeringConnection',
+          'ec2:DescribeVpcPeeringConnections',
+          'ec2:DeleteVpcPeeringConnection',
+        ],
+        resources: [
+          Stack.of(this).formatArn({
+            service: 'ec2',
+            resource: 'vpc-peering-connection',
+            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
+            resourceName: peering.attrConnectionId,
+          }),
+          Stack.of(this).formatArn({
+            service: 'ec2',
+            resource: 'vpc',
+            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
+            resourceName: props.peering.vpc.vpcId,
+          }),
+        ],
+      }));
+      provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'ec2:AcceptVpcPeeringConnection',
+          'ec2:DescribeVpcPeeringConnections',
+          'ec2:DeleteVpcPeeringConnection',
+        ],
+        resources: [
+          Stack.of(this).formatArn({
+            service: 'ec2',
+            resource: 'vpc-peering-connection',
+            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
+            resourceName: peering.attrConnectionId,
+          }),
+          Stack.of(this).formatArn({
+            service: 'ec2',
+            resource: 'vpc',
+            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
+            resourceName: props.peering.vpc.vpcId,
+          }),
+        ],
+      }));
+      const peeringHandlerResource = new CustomResource(this, 'CustomResourceVpcPeeringHandler', {
+        serviceToken: provider.serviceToken,
+        resourceType: 'Custom::VpcPeeringHandler',
+        properties: {
+          ConnectionId: peering.attrConnectionId,
+        },
+      });
+      peeringHandlerResource.node.addDependency(peering);
     }
-
-
-    // create network peering
   }
 }

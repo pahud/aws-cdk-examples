@@ -6,7 +6,6 @@ import { Construct } from 'constructs';
 import { MongoDBAtlasBootstrap } from './bootstrap';
 import { Demo } from './demo';
 
-
 const app = new App();
 const env = { region: process.env.CDK_DEFAULT_REGION, account: process.env.CDK_DEFAULT_ACCOUNT };
 const bootstrapStack = new Stack(app, 'mongo-cdk-bootstrap', { env });
