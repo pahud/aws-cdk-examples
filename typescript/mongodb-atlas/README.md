@@ -1,8 +1,8 @@
-# MongoDB Atlas with CDK
+# MongoDB Atlas Reference Architecture with AWS CDK
 
 This example walks you through building MongoDB Atlas cluster with AWS CDK.
 
-<img src=./images/diagram.svg>
+<img src=./images/peering-diagram.svg>
 
 # How it works
 
@@ -48,7 +48,7 @@ Follow the commands in the `Outputs`, let's activate the relevant MongoDB Atlas 
 ```sh
 $ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
 ```
-(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project` and `MongoDB::Atlas::ProjectIpAccessList`)
+(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer` and `MongoDB::Atlas::NetworkPeering`)
 
 Last but not least, update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
@@ -65,37 +65,122 @@ $ aws secretsmanager update-secret --secret-id cfn/atlas/profile/my-mongo-profil
 
 Now your are all set. Let's create the sample cluster.
 
-# Create the Cluster
+# Create the Cluster with VPC Peering
 
-Let's deploy the `DemoStack` that creates the cluster with the `AtlasBasic` L3 construct. You can view the source of `DemoStack` in [demo-stack.ts](./src/demo-stack.ts).
+Now, Let's deploy the `mongodb-demo-stack` that creates the cluster with the `AtlasBasic` L3 construct. What happens when you deploy the Demo stack:
 
-```sh
-$ MONGODB_ATLAS_ORG_ID='your_org_id' npx cdk deploy mongodb-demo-stack
-```
+1. A new `Project` will be created.
+2. A new `DatabaseUser` will be created.
+3. A new `Cluster` will be created.
+4. A new `NetworkContainer` will be created.
+5. A new `NetworkPeering` will be created.
 
-Alternatively, you can update the `demo-stack.ts` by specifying your orgId in the construct property:
+On creation complete, your VPC will receive a peering request from the MongoDB cluster VPC. Go to AWS console VPC peering connections to accept the peering request.
+
+Read the source for more details in [demo.ts](./src/demo.ts).
 
 
 ```ts
-new DemoStack(app, 'mongodb-demo-stack', {
+const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
+
+new Demo(demoStack, 'mongodb-demo', {
   secretProfile,
-  orgId: 'your_org_id',
+  orgId: process.env.MONGODB_ATLAS_ORG_ID || 'mock_id',
+  region: 'US_EAST_1',
+  peering: {
+    vpc: getVpc(demoStack),
+    atlasCidr: '192.168.248.0/21',
+  },
 });
 ```
 
-On deployment completed, you should be able to see a standard cluster in your MongoDB Atlas console in the relevant organization and project.
+The `getVpc()` method will use the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
+
+
+The following sample deploy the MongoDB Atlas clsuter and VPC peering with my default VPC:
+
+```sh
+$ export MONGODB_ATLAS_ORG_ID='your_org_id'
+$ npx cdk deploy mongodb-demo-stack -c use_default_vpc=1
+```
+
+
+On deployment completed, you should be able to see a M10 cluster in your MongoDB Atlas console in the relevant organization and project.
 
 <img src=./images/cluster.png>
 
+As this is a cluster with VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+
+# Connect to your cluster from your VPC
+
+Generate the password for the default database user `atlas-user ` and get the connection URI from the console.
+
+For example, connect to the cluster from Amazon Linux 2023 EC2 instance using `mongosh`:
+
+```sh
+$ mongosh "mongodb+srv://cluster-mongodb-demo.5y22n.mongodb.net/" --apiVersion 1 --username atlas-user
+Enter password: ********
+Current Mongosh Log ID: ****************
+Connecting to:          mongodb+srv://<credentials>@cluster-mongodb-demo.5y22n.mongodb.net/?appName=mongosh+1.10.2
+Using MongoDB:          6.0.8 (API Version 1)
+Using Mongosh:          1.10.2
+
+For mongosh info see: https://docs.mongodb.com/mongodb-shell/
+
+Atlas atlas-s45z4s-shard-0 [primary] test> show dbs
+admin                      248.00 KiB
+config                     280.00 KiB
+local                      532.00 KiB
+mongodbVSCodePlaygroundDB   72.00 KiB
+Atlas atlas-s45z4s-shard-0 [primary] test> 
+```
+
+# How does the client DNS resolve the cluster IP addresses
+
+The MongoDB connection string starts with mongodb+srv://, which indicates that it uses the SRV record for DNS resolution. When MongoDB clients encounter an SRV connection string, they follow a specific DNS resolution process to find the appropriate MongoDB server(s) to connect to.
+
+The client essentially append `._mongodb._tcp.` to the extracted domain name to form the SRV record query. In this example, the SRV query would be `_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net.`
+
+If you `dig` on the EC2 instance in the VPC:
+
+```sh
+$ dig -t SRV _mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net
+
+;_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. IN SRV
+
+;; ANSWER SECTION:
+_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net.
+_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-02.5y22n.mongodb.net.
+_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-03.5y22n.mongodb.net.
+_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-00.5y22n.mongodb.net.
+```
+
+And the four replica domain names all resolve into private IP addresses:
+
+```sh
+$ dig cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net
+
+;cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net. IN A
+
+;; ANSWER SECTION:
+cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net. 57 IN CNAME ec2-34-199-107-238.compute-1.amazonaws.com.
+ec2-34-199-107-238.compute-1.amazonaws.com. 17 IN A 192.168.248.207
+```
+
+Now, your MongoDB client in your VPC should be able to access the provisioned cluster through a secure peering network without routing to the public internet.
+
 # clean up
 
-destroy the cluster:
+1. Destroy the mongodb-demo-stack:
 
 ```sh
 $ npx cdk destroy mongodb-demo-stack
 ```
 
-destroy the bootstrap stack(cloudformation execution role and secret):
+2. Destroy the VPC peering and additional routing rules from the AWS console.
+
+
+3. (Optional) Destroy the bootstrap stack(cloudformation execution role and secret):
 
 ```sh
 $ npx cdk destroy mongo-cdk-bootstrap
