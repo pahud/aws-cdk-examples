@@ -1,7 +1,7 @@
 name: upgrade-aws-image-builder
 env:
-  branch_name: pahud/aws-image-builder
-  folder_name: aws-image-builder
+  branch_name: pahud/aws-imagebuilder
+  folder_name: aws-imagebuilder
 on:
   workflow_dispatch: {}
   schedule:
