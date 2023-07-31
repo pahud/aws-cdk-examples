@@ -35,6 +35,38 @@ exports[`default validation 1`] = `
         ],
       },
     },
+    "mongoCdkBootstrapActivateCmdNetworkContainerB08CFFFE": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::NetworkContainer --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
+    "mongoCdkBootstrapActivateCmdNetworkPeeringFF8C79D7": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::NetworkPeering --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
     "mongoCdkBootstrapActivateCmdProjectD99573BE": {
       "Value": {
         "Fn::Join": [
@@ -315,6 +347,16 @@ exports[`default validation 1`] = `
 
 exports[`default validation 2`] = `
 {
+  "Outputs": {
+    "mongodbdemostackVpcPeeringConnectionId026105BD": {
+      "Value": {
+        "Fn::GetAtt": [
+          "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC",
+          "ConnectionId",
+        ],
+      },
+    },
+  },
   "Parameters": {
     "BootstrapVersion": {
       "Default": "/cdk-bootstrap/hnb659fds/version",
@@ -323,14 +365,372 @@ exports[`default validation 2`] = `
     },
   },
   "Resources": {
-    "atlasbasicmongodbdemostackclusteratlasbasicmongodbdemostackFA21572E": {
+    "Vpc8378EB38": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+    "VpcIGWD7BA715C": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "VpcPrivateSubnet1DefaultRouteBE02A9ED": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "VpcPublicSubnet1NATGateway4D7517AA",
+        },
+        "RouteTableId": {
+          "Ref": "VpcPrivateSubnet1RouteTableB2C5B500",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcPrivateSubnet1RouteTableAssociation70C59FA6": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcPrivateSubnet1RouteTableB2C5B500",
+        },
+        "SubnetId": {
+          "Ref": "VpcPrivateSubnet1Subnet536B997A",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcPrivateSubnet1RouteTableB2C5B500": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcPrivateSubnet1Subnet536B997A": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.128.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PrivateSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "VpcPrivateSubnet2DefaultRoute060D2087": {
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": {
+          "Ref": "VpcPublicSubnet1NATGateway4D7517AA",
+        },
+        "RouteTableId": {
+          "Ref": "VpcPrivateSubnet2RouteTableA678073B",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcPrivateSubnet2RouteTableA678073B": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcPrivateSubnet2RouteTableAssociationA89CAD56": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcPrivateSubnet2RouteTableA678073B",
+        },
+        "SubnetId": {
+          "Ref": "VpcPrivateSubnet2Subnet3788AAA1",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcPrivateSubnet2Subnet3788AAA1": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.192.0/18",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Private",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Private",
+          },
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PrivateSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "VpcPublicSubnet1DefaultRoute3DA9E72A": {
+      "DependsOn": [
+        "VpcVPCGWBF912B6E",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "RouteTableId": {
+          "Ref": "VpcPublicSubnet1RouteTable6C95E38E",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcPublicSubnet1EIPD7E02669": {
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::EIP",
+    },
+    "VpcPublicSubnet1NATGateway4D7517AA": {
+      "DependsOn": [
+        "VpcPublicSubnet1DefaultRoute3DA9E72A",
+        "VpcPublicSubnet1RouteTableAssociation97140677",
+      ],
+      "Properties": {
+        "AllocationId": {
+          "Fn::GetAtt": [
+            "VpcPublicSubnet1EIPD7E02669",
+            "AllocationId",
+          ],
+        },
+        "SubnetId": {
+          "Ref": "VpcPublicSubnet1Subnet5C2D37C4",
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet1",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::NatGateway",
+    },
+    "VpcPublicSubnet1RouteTable6C95E38E": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcPublicSubnet1RouteTableAssociation97140677": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcPublicSubnet1RouteTable6C95E38E",
+        },
+        "SubnetId": {
+          "Ref": "VpcPublicSubnet1Subnet5C2D37C4",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcPublicSubnet1Subnet5C2D37C4": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.0.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "VpcPublicSubnet2DefaultRoute97F91067": {
+      "DependsOn": [
+        "VpcVPCGWBF912B6E",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "RouteTableId": {
+          "Ref": "VpcPublicSubnet2RouteTable94F7E489",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "VpcPublicSubnet2RouteTable94F7E489": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "VpcPublicSubnet2RouteTableAssociationDD5762D8": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcPublicSubnet2RouteTable94F7E489",
+        },
+        "SubnetId": {
+          "Ref": "VpcPublicSubnet2Subnet691E08A3",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "VpcPublicSubnet2Subnet691E08A3": {
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": "",
+            },
+          ],
+        },
+        "CidrBlock": "10.0.64.0/18",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "aws-cdk:subnet-name",
+            "Value": "Public",
+          },
+          {
+            "Key": "aws-cdk:subnet-type",
+            "Value": "Public",
+          },
+          {
+            "Key": "Name",
+            "Value": "mongodb-demo-stack/Vpc/PublicSubnet2",
+          },
+        ],
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "VpcVPCGWBF912B6E": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "VpcIGWD7BA715C",
+        },
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+    },
+    "mongodbdemostackatlasbasicmongodbdemostackclusteratlasbasicmongodbdemostack8018961B": {
+      "DependsOn": [
+        "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B",
+      ],
       "Properties": {
         "ClusterType": "REPLICASET",
         "Name": "cluster-mongodb-demo-stack",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
+            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
             "Id",
           ],
         },
@@ -358,14 +758,14 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::Cluster",
     },
-    "atlasbasicmongodbdemostackdbuseratlasbasicmongodbdemostackBE146785": {
+    "mongodbdemostackatlasbasicmongodbdemostackdbuseratlasbasicmongodbdemostack37263EAD": {
       "Properties": {
         "DatabaseName": "admin",
         "Password": "atlas-pwd",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
+            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
             "Id",
           ],
         },
@@ -379,7 +779,7 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::DatabaseUser",
     },
-    "atlasbasicmongodbdemostackipaccesslistatlasbasicmongodbdemostack66DBC4C7": {
+    "mongodbdemostackatlasbasicmongodbdemostackipaccesslistatlasbasicmongodbdemostack5F69B611": {
       "Properties": {
         "AccessList": [
           {
@@ -390,20 +790,71 @@ exports[`default validation 2`] = `
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0",
+            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
             "Id",
           ],
         },
       },
       "Type": "MongoDB::Atlas::ProjectIpAccessList",
     },
-    "atlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack809897D0": {
+    "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072": {
       "Properties": {
         "Name": "project-mongodb-demo-stack",
-        "OrgId": "mock_id",
+        "OrgId": "618cb365c835351df903f6ba",
         "Profile": "my-mongo-profile",
       },
       "Type": "MongoDB::Atlas::Project",
+    },
+    "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B": {
+      "Properties": {
+        "AtlasCidrBlock": "192.168.248.0/21",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "Id",
+          ],
+        },
+        "Provisioned": true,
+        "RegionName": "US_EAST_1",
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "MongoDB::Atlas::NetworkContainer",
+    },
+    "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC": {
+      "Properties": {
+        "AccepterRegionName": {
+          "Ref": "AWS::Region",
+        },
+        "AwsAccountId": {
+          "Ref": "AWS::AccountId",
+        },
+        "ContainerId": {
+          "Fn::GetAtt": [
+            "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B",
+            "Id",
+          ],
+        },
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "Id",
+          ],
+        },
+        "RouteTableCIDRBlock": {
+          "Fn::GetAtt": [
+            "Vpc8378EB38",
+            "CidrBlock",
+          ],
+        },
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "MongoDB::Atlas::NetworkPeering",
     },
   },
   "Rules": {
