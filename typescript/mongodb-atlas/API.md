@@ -77,7 +77,7 @@ Your are all set.
 
 # Create the Cluster with VPC Peering
 
-Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasBasic` L3 construct. What happens when you deploy the Demo stack:
+Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
 
 1. A new `Project` will be created.
 2. A new `DatabaseUser` will be created.
@@ -88,24 +88,25 @@ Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasB
 
 On creation complete, the VPC peering will be established without any manual approval.
 
-Read the source of [demo.ts](./src/demo.ts) for more details.
-
 ```ts
 const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
 
-new Demo(demoStack, 'mongodb-demo', {
-  secretProfile,
-  orgId: process.env.MONGODB_ATLAS_ORG_ID || 'mock_id',
-  region: 'US_EAST_1',
-  peering: {
-    vpc: getVpc(demoStack),
-    atlasCidr: '192.168.248.0/21',
-  },
+const vpc = getVpc(demoStack);
+const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
+
+new AtlasCluster(demoStack, 'mongodb-demo', {
+  orgId,
+  profile: secretProfile,
+  replication,
+  accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
+  peering: { vpc, cidr: '192.168.248.0/21' },
 });
 ```
 
-The `getVpc()` method will either reutrn the existing VPC or create and return a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
+Read [src/integ.default.ts](./src/integ.default.ts) for the full sample.
 
+
+The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
 
 The following sample deploy the MongoDB Atlas clsuter and VPC peering with my default VPC:
 
@@ -120,60 +121,74 @@ On deployment completed, check out the cluster in your MongoDB Atlas console:
 
 As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
 
+The cluster connection string can be found in the outputs:
+
+```
+Outputs:
+mongodb-demo-stack.mongodbdemoVpcPeeringConnectionId81345C3A = pcx-0780121d0755b997c
+mongodb-demo-stack.mongodbdemoconnectionStrings6DEDB530 = mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net
+```
+
 # Connect your cluster from your VPC
 
-Generate the password for the default database user `atlas-user ` and get the connection URI from the console.
+Re-generate the password for the default database user `atlas-user ` and get the connection URI from the console or simply use the one
+from the Outputs.
 
 For example, connect to the cluster from an Amazon Linux instance using `mongosh`:
 
 ```sh
-$ mongosh "mongodb+srv://cluster-mongodb-demo.5y22n.mongodb.net/" --apiVersion 1 --username atlas-user
-Enter password: ********
-Current Mongosh Log ID: ****************
-Connecting to:          mongodb+srv://<credentials>@cluster-mongodb-demo.5y22n.mongodb.net/?appName=mongosh+1.10.2
+$ mongosh "mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net/" --apiVersion 1 --username atlas-user
+Enter password: *********
+Current Mongosh Log ID: ******************
+Connecting to:          mongodb+srv://<credentials>@atlas-cluster-clustermo.4pa5m.mongodb.net/?appName=mongosh+1.10.3
 Using MongoDB:          6.0.8 (API Version 1)
-Using Mongosh:          1.10.2
+Using Mongosh:          1.10.3
 
 For mongosh info see: https://docs.mongodb.com/mongodb-shell/
 
-Atlas atlas-s45z4s-shard-0 [primary] test> show dbs
-admin                      248.00 KiB
-config                     280.00 KiB
-local                      532.00 KiB
-mongodbVSCodePlaygroundDB   72.00 KiB
-Atlas atlas-s45z4s-shard-0 [primary] test>
+
+To help improve our products, anonymous usage data is collected and sent to MongoDB periodically (https://www.mongodb.com/legal/privacy-policy).
+You can opt-out by running the disableTelemetry() command.
+
+Atlas atlas-3h7l0v-shard-0 [primary] test> show dbs;
+admin   232.00 KiB
+config  204.00 KiB
+local   492.00 KiB
+Atlas atlas-3h7l0v-shard-0 [primary] test>
 ```
 
 # How does the client DNS resolve the cluster IP addresses
 
 The MongoDB connection string starts with mongodb+srv://, which indicates that it uses the SRV record for DNS resolution. When MongoDB clients encounter an SRV connection string, they follow a specific DNS resolution process to find the appropriate MongoDB server(s) to connect to.
 
-The client essentially append `._mongodb._tcp.` to the extracted domain name to form the SRV record query. In this example, the SRV query would be `_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net.`
+The client essentially append `._mongodb._tcp.` to the extracted domain name to form the SRV record query. In this example, the SRV query would be `_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net.`
 
 If you `dig` on the EC2 instance in the VPC:
 
 ```sh
-$ dig -t SRV _mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net
+$ dig -t SRV _mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net
 
-;_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. IN SRV
+;_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net. IN SRV
 
 ;; ANSWER SECTION:
-_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net.
-_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-02.5y22n.mongodb.net.
-_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-03.5y22n.mongodb.net.
-_mongodb._tcp.cluster-mongodb-demo.5y22n.mongodb.net. 60 IN SRV 0 0 27017 cluster-mongodb-demo-shard-00-00.5y22n.mongodb.net.
+_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net. 60 IN SRV 0 0 27017 atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net.
+_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net. 60 IN SRV 0 0 27017 atlas-cluster-clustermo-shard-00-02.4pa5m.mongodb.net.
+_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net. 60 IN SRV 0 0 27017 atlas-cluster-clustermo-shard-00-01.4pa5m.mongodb.net.
+_mongodb._tcp.atlas-cluster-clustermo.4pa5m.mongodb.net. 60 IN SRV 0 0 27017 atlas-cluster-clustermo-shard-00-03.4pa5m.mongodb.net.
+
 ```
 
 And the four replica domain names all resolve into private IP addresses:
 
 ```sh
-$ dig cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net
+$ dig atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net.
 
-;cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net. IN A
+;; QUESTION SECTION:
+;atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net. IN A
 
 ;; ANSWER SECTION:
-cluster-mongodb-demo-shard-00-01.5y22n.mongodb.net. 57 IN CNAME ec2-34-199-107-238.compute-1.amazonaws.com.
-ec2-34-199-107-238.compute-1.amazonaws.com. 17 IN A 192.168.248.207
+atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net. 60 IN CNAME ec2-34-227-203-248.compute-1.amazonaws.com.
+ec2-34-227-203-248.compute-1.amazonaws.com. 20 IN A 192.168.254.210
 ```
 
 Now, your MongoDB client in your VPC should be able to access the provisioned cluster through a secure peering network without routing to the public internet.
@@ -195,16 +210,30 @@ $ npx cdk destroy mongodb-demo-stack
 $ npx cdk destroy mongo-cdk-bootstrap
 ```
 
-
 # FAQ
 **Question: Do I need to manually accept the VPC peering from AWS console**
 
-Answer: No, the CDK custom resource does this for you. But you need to manually add an additional
-route to the `atlasCidr` through the vpc peering connection. AWS CDK does not do that for you.
+Answer: No, the CDK custom resource does this for you. But you need to manually add additional
+routes to the Atlas `cidr` through the vpc peering connection for each routing table.
 
 **Question: Should I add the billing method before I am allowed to create the cluster?**
 
 Answer: Yes you have to add a default billing method in the MongoDB Atlas console.
+
+**Question: What is the default access list for my cluster?**
+
+Answer: You need to specify the `accesslist` for your `AtlasCluster`. If you enable `peering`, you should scope down the ACL to allow
+your VPC CIDR block only:
+
+```ts
+accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
+```
+
+Or only from all private subnets:
+
+```ts
+accessList: vpc.privateSubnets.map(s => ({ ipAddress: s.ipv4CidrBlock, comment: `allow from ${s.subnetId}` })),
+```
 
 **Question: Do I always need to deploy bootstrap stack for every cluster creation?**
 
@@ -1696,14 +1725,14 @@ const atlasClusterProps: AtlasClusterProps = { ... }
 
 | **Name** | **Type** | **Description** |
 | --- | --- | --- |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.accessList">accessList</a></code> | <code><a href="#mongodb-atlas.AccessList">AccessList</a>[]</code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.orgId">orgId</a></code> | <code>string</code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.profile">profile</a></code> | <code>string</code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.replication">replication</a></code> | <code><a href="#mongodb-atlas.ReplicationSpecs">ReplicationSpecs</a>[]</code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.peering">peering</a></code> | <code><a href="#mongodb-atlas.PeeringProps">PeeringProps</a></code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | region for the network container. |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.user">user</a></code> | <code><a href="#mongodb-atlas.IDatabaseUser">IDatabaseUser</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.accessList">accessList</a></code> | <code><a href="#mongodb-atlas.AccessList">AccessList</a>[]</code> | The project IP access list. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.orgId">orgId</a></code> | <code>string</code> | The Organization ID for this cluster. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.profile">profile</a></code> | <code>string</code> | The profile for the secret. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.replication">replication</a></code> | <code><a href="#mongodb-atlas.ReplicationSpecs">ReplicationSpecs</a>[]</code> | The specs for replication. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.peering">peering</a></code> | <code><a href="#mongodb-atlas.PeeringProps">PeeringProps</a></code> | VPC peering options with AWS. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | The project for this cluster. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | Region for the network container. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.user">user</a></code> | <code><a href="#mongodb-atlas.IDatabaseUser">IDatabaseUser</a></code> | DatabaseUser for this cluster. |
 
 ---
 
@@ -1715,6 +1744,10 @@ public readonly accessList: AccessList[];
 
 - *Type:* <a href="#mongodb-atlas.AccessList">AccessList</a>[]
 
+The project IP access list.
+
+> [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project-ip-access-list/docs](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project-ip-access-list/docs)
+
 ---
 
 ##### `orgId`<sup>Required</sup> <a name="orgId" id="mongodb-atlas.AtlasClusterProps.property.orgId"></a>
@@ -1724,6 +1757,8 @@ public readonly orgId: string;
 ```
 
 - *Type:* string
+
+The Organization ID for this cluster.
 
 ---
 
@@ -1735,6 +1770,8 @@ public readonly profile: string;
 
 - *Type:* string
 
+The profile for the secret.
+
 ---
 
 ##### `replication`<sup>Required</sup> <a name="replication" id="mongodb-atlas.AtlasClusterProps.property.replication"></a>
@@ -1745,6 +1782,10 @@ public readonly replication: ReplicationSpecs[];
 
 - *Type:* <a href="#mongodb-atlas.ReplicationSpecs">ReplicationSpecs</a>[]
 
+The specs for replication.
+
+> [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/cluster/docs#replicationspecs](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/cluster/docs#replicationspecs)
+
 ---
 
 ##### `peering`<sup>Optional</sup> <a name="peering" id="mongodb-atlas.AtlasClusterProps.property.peering"></a>
@@ -1754,6 +1795,14 @@ public readonly peering: PeeringProps;
 ```
 
 - *Type:* <a href="#mongodb-atlas.PeeringProps">PeeringProps</a>
+- *Default:* no vpc peering.
+
+VPC peering options with AWS.
+
+If you enable this option, the network container and network peering with AWS VPC
+will be provisioned and the VPC peering request will be auto accepted.
+
+> [https://www.mongodb.com/docs/atlas/security-vpc-peering/](https://www.mongodb.com/docs/atlas/security-vpc-peering/)
 
 ---
 
@@ -1764,6 +1813,10 @@ public readonly project: IProject;
 ```
 
 - *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
+
+The project for this cluster.
+
+> [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project/docs](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project/docs)
 
 ---
 
@@ -1776,7 +1829,7 @@ public readonly region: AwsRegion;
 - *Type:* <a href="#mongodb-atlas.AwsRegion">AwsRegion</a>
 - *Default:* US_EAST_1
 
-region for the network container.
+Region for the network container.
 
 ---
 
@@ -1787,6 +1840,10 @@ public readonly user: IDatabaseUser;
 ```
 
 - *Type:* <a href="#mongodb-atlas.IDatabaseUser">IDatabaseUser</a>
+
+DatabaseUser for this cluster.
+
+> [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/database-user/docs](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/database-user/docs)
 
 ---
 
