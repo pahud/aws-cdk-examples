@@ -48,7 +48,7 @@ new AtlasCluster(demoStack, 'mongodb-demo', {
   orgId,
   profile: secretProfile,
   replication,
-  accessList: [{ ipAddress: '0.0.0.0/0', comment: 'My first IP address' }],
+  accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
   peering: { vpc, cidr: '192.168.248.0/21' },
 });
 

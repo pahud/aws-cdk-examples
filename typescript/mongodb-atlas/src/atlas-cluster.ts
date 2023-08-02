@@ -33,15 +33,46 @@ export interface PeeringProps {
 }
 
 export interface AtlasClusterProps {
+  /**
+   * The Organization ID for this cluster.
+   */
   readonly orgId: string;
+  /**
+   * The profile for the secret.
+   */
   readonly profile: string;
+  /**
+   * The project for this cluster.
+   * @see https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project/docs
+   */
   readonly project?: IProject;
+  /**
+   * DatabaseUser for this cluster.
+   * @see https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/database-user/docs
+   */
   readonly user?: IDatabaseUser;
+  /**
+   * The project IP access list.
+   * @see https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/project-ip-access-list/docs
+   */
   readonly accessList: AccessList[];
+  /**
+   * The specs for replication.
+   * @see https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/cluster/docs#replicationspecs
+   */
   readonly replication: ReplicationSpecs[];
+  /**
+   * VPC peering options with AWS. If you enable this option, the network container and network peering with AWS VPC
+   * will be provisioned and the VPC peering request will be auto accepted.
+   *
+   * @see https://www.mongodb.com/docs/atlas/security-vpc-peering/
+   *
+   * @default - no vpc peering.
+   */
   readonly peering?: PeeringProps;
   /**
-   * region for the network container
+   * Region for the network container.
+   *
    * @default US_EAST_1
    */
   readonly region?: AwsRegion;
