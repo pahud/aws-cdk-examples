@@ -9,14 +9,17 @@ import {
   CustomResource,
 } from 'aws-cdk-lib';
 import {
-  AtlasBasic, CfnNetworkContainer, CfnNetworkPeering,
-  CfnProject, CfnCluster, CfnDatabaseUser,
+  ConnectionStrings, CfnNetworkContainer, CfnNetworkPeering,
 } from 'awscdk-resources-mongodbatlas';
 import { Construct } from 'constructs';
+import {
+  Cluster, DatabaseUser, IDatabaseUser, IpAccessList, AccessList,
+  IProject, Project, ReplicationSpecs, AwsRegion,
+} from './';
 
 export interface PeeringProps {
   readonly vpc: ec2.IVpc;
-  readonly atlasCidr: string;
+  readonly cidr: string;
   /**
    * The AWS region name to accept the peering.
    * @default - current region name.
@@ -29,96 +32,67 @@ export interface PeeringProps {
   readonly accountId?: string;
 }
 
-export interface DemoProps {
-  /**
-   * profile name for the secret.
-   * @default 'default'
-   */
-  readonly secretProfile?: string;
-  readonly clusterName?: string;
-  readonly projectName?: string;
-  /**
-   * The MongoDB Atlas organization ID.
-   */
+export interface AtlasClusterProps {
   readonly orgId: string;
-  readonly region: string;
+  readonly profile: string;
+  readonly project?: IProject;
+  readonly user?: IDatabaseUser;
+  readonly accessList: AccessList[];
+  readonly replication: ReplicationSpecs[];
   readonly peering?: PeeringProps;
+  /**
+   * region for the network container
+   * @default US_EAST_1
+   */
+  readonly region?: AwsRegion;
 }
 
-export class Demo extends Construct {
-  readonly project: CfnProject;
-  readonly cluster: CfnCluster;
-  readonly dbuser: CfnDatabaseUser;
-  constructor(scope: Construct, id: string, props: DemoProps) {
+export class AtlasCluster extends Construct {
+  readonly props: AtlasClusterProps;
+  readonly orgId: string;
+  readonly profile: string;
+  readonly project: IProject;
+  readonly cluster: Cluster;
+  readonly ipAccessList: IpAccessList;
+  readonly connectionStrings: ConnectionStrings;
+  readonly databaseUser: DatabaseUser;
+
+  constructor(scope: Construct, id: string, props: AtlasClusterProps ) {
     super(scope, id);
 
-    const orgId = props?.orgId;
+    this.props = props;
+    this.orgId = props.orgId;
+    this.profile = props.profile;
+    this.project = props.project ?? this.createProject(id);
+    this.cluster = this.createCluster(id);
+    this.connectionStrings = this.cluster.connectionStrings;
+    this.databaseUser = this.createDatabaseUser(id);
+    this.ipAccessList = this.createIpAccessList(id);
 
-    const replicationSpecs = [
-      {
-        numShards: 1,
-        advancedRegionConfigs: [
-          {
-            analyticsSpecs: {
-              ebsVolumeType: 'STANDARD',
-              instanceSize: 'M10',
-              nodeCount: 1,
-            },
-            electableSpecs: {
-              ebsVolumeType: 'STANDARD',
-              instanceSize: 'M10',
-              nodeCount: 3,
-            },
-            priority: 7,
-            regionName: props.region,
-          },
-        ],
-      },
-    ];
-
-    const atlasBasic = new AtlasBasic(this, `atlas-basic-${id}`, {
-      profile: props?.secretProfile ?? 'default',
-      clusterProps: {
-        replicationSpecs,
-        name: props?.clusterName ?? `cluster-${id}`,
-      },
-      projectProps: {
-        orgId,
-        name: props?.projectName ?? `project-${id}`,
-      },
-      ipAccessListProps: {
-        accessList: [
-          { ipAddress: '0.0.0.0/0', comment: 'My first IP address' },
-        ],
-      },
-    });
-
-    this.project = atlasBasic.mProject;
-    this.cluster = atlasBasic.mCluster;
-    this.dbuser = atlasBasic.mDBUser;
+    // determine the region
 
     if (props.peering) {
       // create network container
       const container = new CfnNetworkContainer(this, `networkcontainer${id}`, {
-        projectId: this.project.attrId,
-        regionName: props.region,
-        profile: props.secretProfile,
+        projectId: this.project.projectId,
+        regionName: props.region ?? 'US_EAST_1',
+        profile: props.profile,
         vpcId: props.peering.vpc.vpcId,
-        atlasCidrBlock: props.peering.atlasCidr,
+        atlasCidrBlock: props.peering.cidr,
         provisioned: true,
       });
       // create the peering
       const peering = new CfnNetworkPeering(this, `networkpeering${id}`, {
         containerId: container.attrId,
-        projectId: this.project.attrId,
+        projectId: this.project.projectId,
         vpcId: props.peering.vpc.vpcId,
-        profile: props.secretProfile,
+        profile: props.profile,
         routeTableCidrBlock: props.peering.vpc.vpcCidrBlock,
         accepterRegionName: props.peering.acceptRegionName ?? Aws.REGION,
         awsAccountId: props.peering.accountId ?? Aws.ACCOUNT_ID,
       });
       new CfnOutput(this, 'VpcPeeringConnectionId', { value: peering.attrConnectionId });
-      this.cluster.addDependency(container);
+      this.cluster.node.addDependency(container);
 
       // create the custom resource to accept the peering request
       const provider = new cr.Provider(this, 'VpcPeeringProvider', {
@@ -179,5 +153,35 @@ export class Demo extends Construct {
       });
       peeringHandlerResource.node.addDependency(peering);
     }
+
+    new CfnOutput(this, 'connectionStrings', { value: this.cluster.connectionStrings.standardSrv! });
+
   }
+  private createProject(id: string): Project {
+    return new Project(this, `project${id}`, {
+      orgId: this.orgId,
+      profile: this.profile,
+    });
+  };
+  private createCluster(id: string): Cluster {
+    return new Cluster(this, `cluster${id}`, {
+      profile: this.profile,
+      project: this.project,
+      replicationSpecs: this.props.replication,
+    });
+  }
+  private createDatabaseUser(id: string): DatabaseUser {
+    return new DatabaseUser(this, `dbuser${id}`, {
+      profile: this.profile,
+      project: this.project,
+    });
+  }
+  private createIpAccessList(id: string): IpAccessList {
+    return new IpAccessList(this, `ipaccesslist${id}`, {
+      profile: this.profile,
+      project: this.project,
+      accessList: this.props.accessList,
+    });
+  }
+
 }

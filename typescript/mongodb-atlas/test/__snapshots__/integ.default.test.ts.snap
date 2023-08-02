@@ -348,11 +348,19 @@ exports[`default validation 1`] = `
 exports[`default validation 2`] = `
 {
   "Outputs": {
-    "mongodbdemostackVpcPeeringConnectionId026105BD": {
+    "mongodbdemoVpcPeeringConnectionId81345C3A": {
       "Value": {
         "Fn::GetAtt": [
-          "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC",
+          "mongodbdemonetworkpeeringmongodbdemo73016D46",
           "ConnectionId",
+        ],
+      },
+    },
+    "mongodbdemoconnectionStrings6DEDB530": {
+      "Value": {
+        "Fn::GetAtt": [
+          "mongodbdemoclustermongodbdemo03EA1E3D",
+          "ConnectionStrings.StandardSrv",
         ],
       },
     },
@@ -720,21 +728,21 @@ exports[`default validation 2`] = `
       },
       "Type": "AWS::EC2::VPCGatewayAttachment",
     },
-    "mongodbdemostackCustomResourceVpcPeeringHandlerAD519AD2": {
+    "mongodbdemoCustomResourceVpcPeeringHandler14902443": {
       "DeletionPolicy": "Delete",
       "DependsOn": [
-        "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC",
+        "mongodbdemonetworkpeeringmongodbdemo73016D46",
       ],
       "Properties": {
         "ConnectionId": {
           "Fn::GetAtt": [
-            "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC",
+            "mongodbdemonetworkpeeringmongodbdemo73016D46",
             "ConnectionId",
           ],
         },
         "ServiceToken": {
           "Fn::GetAtt": [
-            "mongodbdemostackVpcPeeringProviderframeworkonEvent12981BD6",
+            "mongodbdemoVpcPeeringProviderframeworkonEventA62ACE81",
             "Arn",
           ],
         },
@@ -742,22 +750,22 @@ exports[`default validation 2`] = `
       "Type": "Custom::VpcPeeringHandler",
       "UpdateReplacePolicy": "Delete",
     },
-    "mongodbdemostackVpcPeeringHandler6A873378": {
+    "mongodbdemoVpcPeeringHandler46E6844A": {
       "DependsOn": [
-        "mongodbdemostackVpcPeeringHandlerServiceRoleDefaultPolicy56645C6B",
-        "mongodbdemostackVpcPeeringHandlerServiceRoleDCB09F74",
+        "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48",
+        "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
       ],
       "Properties": {
         "Code": {
           "S3Bucket": {
             "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
           },
-          "S3Key": "d1551823bf4b1a8c294769c84feef83cd5e372d20382da65a4ebbd75e2efac05.zip",
+          "S3Key": "b8f2db2aaf802c5b744d116138f305e4ad0a6c198ccb4225f7fa4b312c006d10.zip",
         },
         "Handler": "vpc-peering-handler.on_event",
         "Role": {
           "Fn::GetAtt": [
-            "mongodbdemostackVpcPeeringHandlerServiceRoleDCB09F74",
+            "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
             "Arn",
           ],
         },
@@ -765,7 +773,7 @@ exports[`default validation 2`] = `
       },
       "Type": "AWS::Lambda::Function",
     },
-    "mongodbdemostackVpcPeeringHandlerServiceRoleDCB09F74": {
+    "mongodbdemoVpcPeeringHandlerServiceRole41F5C074": {
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -796,7 +804,7 @@ exports[`default validation 2`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "mongodbdemostackVpcPeeringHandlerServiceRoleDefaultPolicy56645C6B": {
+    "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
@@ -827,7 +835,7 @@ exports[`default validation 2`] = `
                       ":vpc-peering-connection/",
                       {
                         "Fn::GetAtt": [
-                          "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC",
+                          "mongodbdemonetworkpeeringmongodbdemo73016D46",
                           "ConnectionId",
                         ],
                       },
@@ -862,19 +870,19 @@ exports[`default validation 2`] = `
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "mongodbdemostackVpcPeeringHandlerServiceRoleDefaultPolicy56645C6B",
+        "PolicyName": "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48",
         "Roles": [
           {
-            "Ref": "mongodbdemostackVpcPeeringHandlerServiceRoleDCB09F74",
+            "Ref": "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "mongodbdemostackVpcPeeringProviderframeworkonEvent12981BD6": {
+    "mongodbdemoVpcPeeringProviderframeworkonEventA62ACE81": {
       "DependsOn": [
-        "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy46520740",
-        "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleEB55D43E",
+        "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D",
+        "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
       ],
       "Properties": {
         "Code": {
@@ -883,12 +891,12 @@ exports[`default validation 2`] = `
           },
           "S3Key": "8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip",
         },
-        "Description": "AWS CDK resource provider framework - onEvent (mongodb-demo-stack/mongodb-demo-stack/VpcPeeringProvider)",
+        "Description": "AWS CDK resource provider framework - onEvent (mongodb-demo-stack/mongodb-demo/VpcPeeringProvider)",
         "Environment": {
           "Variables": {
             "USER_ON_EVENT_FUNCTION_ARN": {
               "Fn::GetAtt": [
-                "mongodbdemostackVpcPeeringHandler6A873378",
+                "mongodbdemoVpcPeeringHandler46E6844A",
                 "Arn",
               ],
             },
@@ -897,7 +905,7 @@ exports[`default validation 2`] = `
         "Handler": "framework.onEvent",
         "Role": {
           "Fn::GetAtt": [
-            "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleEB55D43E",
+            "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
             "Arn",
           ],
         },
@@ -906,49 +914,7 @@ exports[`default validation 2`] = `
       },
       "Type": "AWS::Lambda::Function",
     },
-    "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy46520740": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": "lambda:InvokeFunction",
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "mongodbdemostackVpcPeeringHandler6A873378",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "mongodbdemostackVpcPeeringHandler6A873378",
-                          "Arn",
-                        ],
-                      },
-                      ":*",
-                    ],
-                  ],
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy46520740",
-        "Roles": [
-          {
-            "Ref": "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleEB55D43E",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "mongodbdemostackVpcPeeringProviderframeworkonEventServiceRoleEB55D43E": {
+    "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1": {
       "Properties": {
         "AssumeRolePolicyDocument": {
           "Statement": [
@@ -979,17 +945,59 @@ exports[`default validation 2`] = `
       },
       "Type": "AWS::IAM::Role",
     },
-    "mongodbdemostackatlasbasicmongodbdemostackclusteratlasbasicmongodbdemostack8018961B": {
+    "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "mongodbdemoVpcPeeringHandler46E6844A",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "mongodbdemoVpcPeeringHandler46E6844A",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D",
+        "Roles": [
+          {
+            "Ref": "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "mongodbdemoclustermongodbdemo03EA1E3D": {
       "DependsOn": [
-        "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B",
+        "mongodbdemonetworkcontainermongodbdemoE0067F2E",
       ],
       "Properties": {
         "ClusterType": "REPLICASET",
-        "Name": "cluster-mongodb-demo-stack",
+        "Name": "atlas-cluster-clustermongodb-demo",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "mongodbdemoprojectmongodbdemoE55901C9",
             "Id",
           ],
         },
@@ -1017,14 +1025,14 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::Cluster",
     },
-    "mongodbdemostackatlasbasicmongodbdemostackdbuseratlasbasicmongodbdemostack37263EAD": {
+    "mongodbdemodbusermongodbdemo12137F54": {
       "Properties": {
         "DatabaseName": "admin",
         "Password": "atlas-pwd",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "mongodbdemoprojectmongodbdemoE55901C9",
             "Id",
           ],
         },
@@ -1038,7 +1046,7 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::DatabaseUser",
     },
-    "mongodbdemostackatlasbasicmongodbdemostackipaccesslistatlasbasicmongodbdemostack5F69B611": {
+    "mongodbdemoipaccesslistmongodbdemoBB12E559": {
       "Properties": {
         "AccessList": [
           {
@@ -1049,28 +1057,20 @@ exports[`default validation 2`] = `
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "mongodbdemoprojectmongodbdemoE55901C9",
             "Id",
           ],
         },
       },
       "Type": "MongoDB::Atlas::ProjectIpAccessList",
     },
-    "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072": {
-      "Properties": {
-        "Name": "project-mongodb-demo-stack",
-        "OrgId": "618cb365c835351df903f6ba",
-        "Profile": "my-mongo-profile",
-      },
-      "Type": "MongoDB::Atlas::Project",
-    },
-    "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B": {
+    "mongodbdemonetworkcontainermongodbdemoE0067F2E": {
       "Properties": {
         "AtlasCidrBlock": "192.168.248.0/21",
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "mongodbdemoprojectmongodbdemoE55901C9",
             "Id",
           ],
         },
@@ -1082,7 +1082,7 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::NetworkContainer",
     },
-    "mongodbdemostacknetworkpeeringmongodbdemostack480C53DC": {
+    "mongodbdemonetworkpeeringmongodbdemo73016D46": {
       "Properties": {
         "AccepterRegionName": {
           "Ref": "AWS::Region",
@@ -1092,14 +1092,14 @@ exports[`default validation 2`] = `
         },
         "ContainerId": {
           "Fn::GetAtt": [
-            "mongodbdemostacknetworkcontainermongodbdemostackC4C7952B",
+            "mongodbdemonetworkcontainermongodbdemoE0067F2E",
             "Id",
           ],
         },
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
-            "mongodbdemostackatlasbasicmongodbdemostackprojectatlasbasicmongodbdemostack2AA56072",
+            "mongodbdemoprojectmongodbdemoE55901C9",
             "Id",
           ],
         },
@@ -1114,6 +1114,14 @@ exports[`default validation 2`] = `
         },
       },
       "Type": "MongoDB::Atlas::NetworkPeering",
+    },
+    "mongodbdemoprojectmongodbdemoE55901C9": {
+      "Properties": {
+        "Name": "project-projectmongodb-demo",
+        "OrgId": "618cb365c835351df903f6ba",
+        "Profile": "my-mongo-profile",
+      },
+      "Type": "MongoDB::Atlas::Project",
     },
   },
   "Rules": {
