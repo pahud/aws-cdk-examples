@@ -2,7 +2,7 @@
 
 This example walks you through building MongoDB Atlas cluster with AWS CDK.
 
-<img src=./images/peering-diagram.svg>
+<img src=./images/peering-diagram-serverless.svg>
 
 # How it works
 
@@ -48,12 +48,13 @@ Follow the commands in the `Outputs`, let's activate the relevant MongoDB Atlas 
 ```sh
 $ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
 ```
-(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer` and `MongoDB::Atlas::NetworkPeering`)
+(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer`, `MongoDB::Atlas::ServerlessInstance`
+and `MongoDB::Atlas::NetworkPeering`)
 
 Alternatively, if you are comfortable using for loop in the shell:
 
 ```sh
-$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering
+$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering ServerlessInstance
 > do
 > aws cloudformation activate-type --type-name MongoDB::Atlas::${i} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
 > done
@@ -77,14 +78,15 @@ Your are all set.
 
 # Create the Cluster with VPC Peering
 
-Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
+Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
 
 1. A new `Project` will be created.
 2. A new `DatabaseUser` will be created.
 3. A new `Cluster` will be created.
-4. A new `NetworkContainer` will be created.
-5. A new `NetworkPeering` will be created.
-6. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
+4. A new `ServerlessInstance` will be created.
+5. A new `NetworkContainer` will be created.
+6. A new `NetworkPeering` will be created.
+7. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
 
 On creation complete, the VPC peering will be established without any manual approval.
 
@@ -94,12 +96,23 @@ const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
 const vpc = getVpc(demoStack);
 const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
 
-new AtlasCluster(demoStack, 'mongodb-demo', {
+// create a ReplicaSet cluster
+const cluster = new AtlasCluster(demoStack, 'Cluster', {
+  clusterName: 'my-cluster',
   orgId,
   profile: secretProfile,
   replication,
   accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
   peering: { vpc, cidr: '192.168.248.0/21' },
+  clusterType: ClusterType.REPLICASET,
+});
+
+// create a serverless instance
+new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  instanceName: 'my-serverless-instance',
+  profile: secretProfile,
+  project: cluster.project,
+  continuousBackup: true,
 });
 ```
 

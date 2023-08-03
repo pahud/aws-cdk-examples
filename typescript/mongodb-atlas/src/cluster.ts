@@ -17,6 +17,11 @@ export interface ClusterAttributes {
   readonly clusterName: string;
 }
 
+/**
+ * Properties to create a MongoDB Atlas cluster.
+ *
+ * @see https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster
+ */
 export interface ClusterProps extends ResourceProps, ClusterOptions {
   readonly profile: string;
   readonly project: IProject;

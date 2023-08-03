@@ -3,7 +3,7 @@ import {
   aws_ec2 as ec2,
 } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
-import { AtlasCluster, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion } from '../src';
+import { AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion, ClusterType } from '../src';
 import { MongoDBAtlasBootstrap } from '../src/bootstrap';
 
 test('default validation', () => {
@@ -44,12 +44,23 @@ test('default validation', () => {
   const vpc = new ec2.Vpc(demoStack, 'Vpc', { natGateways: 1 });
   const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
 
-  new AtlasCluster(demoStack, 'mongodb-demo', {
+  // create a ReplicaSet cluster
+  const cluster = new AtlasCluster(demoStack, 'Cluster', {
+    clusterName: 'my-cluster',
     orgId,
     profile: secretProfile,
     replication,
-    accessList: [{ ipAddress: '0.0.0.0/0', comment: 'My first IP address' }],
+    accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
     peering: { vpc, cidr: '192.168.248.0/21' },
+    clusterType: ClusterType.REPLICASET,
+  });
+
+  // create a serverless instance
+  new ServerlessInstance(demoStack, 'ServerlessInstance', {
+    instanceName: 'my-serverless-instance',
+    profile: secretProfile,
+    project: cluster.project,
+    continuousBackup: true,
   });
 
   [bootstrapStack, demoStack].forEach(stack => {
