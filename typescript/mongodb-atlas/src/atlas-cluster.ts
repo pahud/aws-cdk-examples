@@ -14,7 +14,7 @@ import {
 import { Construct } from 'constructs';
 import {
   Cluster, DatabaseUser, IDatabaseUser, IpAccessList, AccessList,
-  IProject, Project, ReplicationSpecs, AwsRegion,
+  IProject, Project, ReplicationSpecs, AwsRegion, ClusterType,
 } from './';
 
 export interface PeeringProps {
@@ -33,6 +33,12 @@ export interface PeeringProps {
 }
 
 export interface AtlasClusterProps {
+  /**
+   * Name of the cluster.
+   *
+   * @default - auto-generated.
+   */
+  readonly clusterName?: string;
   /**
    * The Organization ID for this cluster.
    */
@@ -76,6 +82,12 @@ export interface AtlasClusterProps {
    * @default US_EAST_1
    */
   readonly region?: AwsRegion;
+  /**
+   * Type of the cluster.
+   *
+   * @default ClusterType.REPLICASET,
+   */
+  readonly clusterType?: ClusterType;
 }
 
 export class AtlasCluster extends Construct {
@@ -198,7 +210,9 @@ export class AtlasCluster extends Construct {
     return new Cluster(this, `cluster${id}`, {
       profile: this.profile,
       project: this.project,
+      name: this.props.clusterName,
       replicationSpecs: this.props.replication,
+      clusterType: this.props.clusterType ?? ClusterType.REPLICASET,
     });
   }
   private createDatabaseUser(id: string): DatabaseUser {

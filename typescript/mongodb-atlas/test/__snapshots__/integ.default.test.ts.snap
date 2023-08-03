@@ -99,6 +99,22 @@ exports[`default validation 1`] = `
         ],
       },
     },
+    "mongoCdkBootstrapActivateCmdServerlessInstance2CA20B2E": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws cloudformation activate-type --type-name MongoDB::Atlas::ServerlessInstance --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
+            {
+              "Fn::GetAtt": [
+                "mongoCdkBootstrapCfnExecRole6DEA467E",
+                "Arn",
+              ],
+            },
+          ],
+        ],
+      },
+    },
     "mongoCdkBootstrapMongoSecretProfileSecretNameC7B5BCEE": {
       "Value": {
         "Fn::Join": [
@@ -348,18 +364,26 @@ exports[`default validation 1`] = `
 exports[`default validation 2`] = `
 {
   "Outputs": {
-    "mongodbdemoVpcPeeringConnectionId81345C3A": {
+    "ClusterVpcPeeringConnectionId734C7A5C": {
       "Value": {
         "Fn::GetAtt": [
-          "mongodbdemonetworkpeeringmongodbdemo73016D46",
+          "ClusternetworkpeeringCluster3BFCD83E",
           "ConnectionId",
         ],
       },
     },
-    "mongodbdemoconnectionStrings6DEDB530": {
+    "ClusterconnectionStrings17813228": {
       "Value": {
         "Fn::GetAtt": [
-          "mongodbdemoclustermongodbdemo03EA1E3D",
+          "ClusterclusterCluster0934C304",
+          "ConnectionStrings.StandardSrv",
+        ],
+      },
+    },
+    "ServerlessInstanceConnectionStringB32B56D6": {
+      "Value": {
+        "Fn::GetAtt": [
+          "ServerlessInstance12909029",
           "ConnectionStrings.StandardSrv",
         ],
       },
@@ -373,6 +397,425 @@ exports[`default validation 2`] = `
     },
   },
   "Resources": {
+    "ClusterCustomResourceVpcPeeringHandler93AA8AB3": {
+      "DeletionPolicy": "Delete",
+      "DependsOn": [
+        "ClusternetworkpeeringCluster3BFCD83E",
+      ],
+      "Properties": {
+        "ConnectionId": {
+          "Fn::GetAtt": [
+            "ClusternetworkpeeringCluster3BFCD83E",
+            "ConnectionId",
+          ],
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "ClusterVpcPeeringProviderframeworkonEventC25E3ED3",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::VpcPeeringHandler",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "ClusterVpcPeeringHandler6D0A269A": {
+      "DependsOn": [
+        "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65",
+        "ClusterVpcPeeringHandlerServiceRoleD02A4066",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
+          },
+          "S3Key": "b8f2db2aaf802c5b744d116138f305e4ad0a6c198ccb4225f7fa4b312c006d10.zip",
+        },
+        "Handler": "vpc-peering-handler.on_event",
+        "Role": {
+          "Fn::GetAtt": [
+            "ClusterVpcPeeringHandlerServiceRoleD02A4066",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.10",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ClusterVpcPeeringHandlerServiceRoleD02A4066": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ec2:AcceptVpcPeeringConnection",
+                "ec2:DescribeVpcPeeringConnections",
+                "ec2:DeleteVpcPeeringConnection",
+              ],
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":ec2:",
+                      {
+                        "Ref": "AWS::Region",
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":vpc-peering-connection/",
+                      {
+                        "Fn::GetAtt": [
+                          "ClusternetworkpeeringCluster3BFCD83E",
+                          "ConnectionId",
+                        ],
+                      },
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":ec2:",
+                      {
+                        "Ref": "AWS::Region",
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId",
+                      },
+                      ":vpc/",
+                      {
+                        "Ref": "Vpc8378EB38",
+                      },
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65",
+        "Roles": [
+          {
+            "Ref": "ClusterVpcPeeringHandlerServiceRoleD02A4066",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ClusterVpcPeeringProviderframeworkonEventC25E3ED3": {
+      "DependsOn": [
+        "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A",
+        "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
+          },
+          "S3Key": "8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip",
+        },
+        "Description": "AWS CDK resource provider framework - onEvent (mongodb-demo-stack/Cluster/VpcPeeringProvider)",
+        "Environment": {
+          "Variables": {
+            "USER_ON_EVENT_FUNCTION_ARN": {
+              "Fn::GetAtt": [
+                "ClusterVpcPeeringHandler6D0A269A",
+                "Arn",
+              ],
+            },
+          },
+        },
+        "Handler": "framework.onEvent",
+        "Role": {
+          "Fn::GetAtt": [
+            "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs14.x",
+        "Timeout": 900,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::GetAtt": [
+                    "ClusterVpcPeeringHandler6D0A269A",
+                    "Arn",
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      {
+                        "Fn::GetAtt": [
+                          "ClusterVpcPeeringHandler6D0A269A",
+                          "Arn",
+                        ],
+                      },
+                      ":*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A",
+        "Roles": [
+          {
+            "Ref": "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ClusterclusterCluster0934C304": {
+      "DependsOn": [
+        "ClusternetworkcontainerCluster7DC0968C",
+      ],
+      "Properties": {
+        "ClusterType": "REPLICASET",
+        "Name": "my-cluster",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+        "ReplicationSpecs": [
+          {
+            "AdvancedRegionConfigs": [
+              {
+                "AnalyticsSpecs": {
+                  "EbsVolumeType": "STANDARD",
+                  "InstanceSize": "M10",
+                  "NodeCount": 1,
+                },
+                "ElectableSpecs": {
+                  "EbsVolumeType": "STANDARD",
+                  "InstanceSize": "M10",
+                  "NodeCount": 3,
+                },
+                "Priority": 7,
+                "RegionName": "US_EAST_1",
+              },
+            ],
+            "NumShards": 1,
+          },
+        ],
+      },
+      "Type": "MongoDB::Atlas::Cluster",
+    },
+    "ClusterdbuserClusterE136AF44": {
+      "Properties": {
+        "DatabaseName": "admin",
+        "Password": "atlas-pwd",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+        "Roles": [
+          {
+            "DatabaseName": "admin",
+            "RoleName": "atlasAdmin",
+          },
+        ],
+        "Username": "atlas-user",
+      },
+      "Type": "MongoDB::Atlas::DatabaseUser",
+    },
+    "ClusteripaccesslistCluster179AC96A": {
+      "Properties": {
+        "AccessList": [
+          {
+            "Comment": "allow from my VPC only",
+            "IPAddress": {
+              "Fn::GetAtt": [
+                "Vpc8378EB38",
+                "CidrBlock",
+              ],
+            },
+          },
+        ],
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+      },
+      "Type": "MongoDB::Atlas::ProjectIpAccessList",
+    },
+    "ClusternetworkcontainerCluster7DC0968C": {
+      "Properties": {
+        "AtlasCidrBlock": "192.168.248.0/21",
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+        "Provisioned": true,
+        "RegionName": "US_EAST_1",
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "MongoDB::Atlas::NetworkContainer",
+    },
+    "ClusternetworkpeeringCluster3BFCD83E": {
+      "Properties": {
+        "AccepterRegionName": {
+          "Ref": "AWS::Region",
+        },
+        "AwsAccountId": {
+          "Ref": "AWS::AccountId",
+        },
+        "ContainerId": {
+          "Fn::GetAtt": [
+            "ClusternetworkcontainerCluster7DC0968C",
+            "Id",
+          ],
+        },
+        "Profile": "my-mongo-profile",
+        "ProjectId": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+        "RouteTableCIDRBlock": {
+          "Fn::GetAtt": [
+            "Vpc8378EB38",
+            "CidrBlock",
+          ],
+        },
+        "VpcId": {
+          "Ref": "Vpc8378EB38",
+        },
+      },
+      "Type": "MongoDB::Atlas::NetworkPeering",
+    },
+    "ClusterprojectCluster4966D242": {
+      "Properties": {
+        "Name": "project-projectCluster",
+        "OrgId": "618cb365c835351df903f6ba",
+        "Profile": "my-mongo-profile",
+      },
+      "Type": "MongoDB::Atlas::Project",
+    },
+    "ServerlessInstance12909029": {
+      "Properties": {
+        "ContinuousBackupEnabled": true,
+        "Name": "my-serverless-instance",
+        "Profile": "my-mongo-profile",
+        "ProjectID": {
+          "Fn::GetAtt": [
+            "ClusterprojectCluster4966D242",
+            "Id",
+          ],
+        },
+        "ProviderSettings": {
+          "ProviderName": "SERVERLESS",
+          "RegionName": "US_EAST_1",
+        },
+        "TerminationProtectionEnabled": false,
+      },
+      "Type": "MongoDB::Atlas::ServerlessInstance",
+    },
     "Vpc8378EB38": {
       "Properties": {
         "CidrBlock": "10.0.0.0/16",
@@ -727,401 +1170,6 @@ exports[`default validation 2`] = `
         },
       },
       "Type": "AWS::EC2::VPCGatewayAttachment",
-    },
-    "mongodbdemoCustomResourceVpcPeeringHandler14902443": {
-      "DeletionPolicy": "Delete",
-      "DependsOn": [
-        "mongodbdemonetworkpeeringmongodbdemo73016D46",
-      ],
-      "Properties": {
-        "ConnectionId": {
-          "Fn::GetAtt": [
-            "mongodbdemonetworkpeeringmongodbdemo73016D46",
-            "ConnectionId",
-          ],
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "mongodbdemoVpcPeeringProviderframeworkonEventA62ACE81",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::VpcPeeringHandler",
-      "UpdateReplacePolicy": "Delete",
-    },
-    "mongodbdemoVpcPeeringHandler46E6844A": {
-      "DependsOn": [
-        "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48",
-        "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
-      ],
-      "Properties": {
-        "Code": {
-          "S3Bucket": {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
-          },
-          "S3Key": "b8f2db2aaf802c5b744d116138f305e4ad0a6c198ccb4225f7fa4b312c006d10.zip",
-        },
-        "Handler": "vpc-peering-handler.on_event",
-        "Role": {
-          "Fn::GetAtt": [
-            "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
-            "Arn",
-          ],
-        },
-        "Runtime": "python3.10",
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "mongodbdemoVpcPeeringHandlerServiceRole41F5C074": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "ec2:AcceptVpcPeeringConnection",
-                "ec2:DescribeVpcPeeringConnections",
-                "ec2:DeleteVpcPeeringConnection",
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":ec2:",
-                      {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":vpc-peering-connection/",
-                      {
-                        "Fn::GetAtt": [
-                          "mongodbdemonetworkpeeringmongodbdemo73016D46",
-                          "ConnectionId",
-                        ],
-                      },
-                    ],
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":ec2:",
-                      {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":vpc/",
-                      {
-                        "Ref": "Vpc8378EB38",
-                      },
-                    ],
-                  ],
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "mongodbdemoVpcPeeringHandlerServiceRoleDefaultPolicyF31A9C48",
-        "Roles": [
-          {
-            "Ref": "mongodbdemoVpcPeeringHandlerServiceRole41F5C074",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "mongodbdemoVpcPeeringProviderframeworkonEventA62ACE81": {
-      "DependsOn": [
-        "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D",
-        "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
-      ],
-      "Properties": {
-        "Code": {
-          "S3Bucket": {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
-          },
-          "S3Key": "8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip",
-        },
-        "Description": "AWS CDK resource provider framework - onEvent (mongodb-demo-stack/mongodb-demo/VpcPeeringProvider)",
-        "Environment": {
-          "Variables": {
-            "USER_ON_EVENT_FUNCTION_ARN": {
-              "Fn::GetAtt": [
-                "mongodbdemoVpcPeeringHandler46E6844A",
-                "Arn",
-              ],
-            },
-          },
-        },
-        "Handler": "framework.onEvent",
-        "Role": {
-          "Fn::GetAtt": [
-            "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs14.x",
-        "Timeout": 900,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": "lambda:InvokeFunction",
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "mongodbdemoVpcPeeringHandler46E6844A",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "mongodbdemoVpcPeeringHandler46E6844A",
-                          "Arn",
-                        ],
-                      },
-                      ":*",
-                    ],
-                  ],
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy35AA238D",
-        "Roles": [
-          {
-            "Ref": "mongodbdemoVpcPeeringProviderframeworkonEventServiceRoleCA1518E1",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "mongodbdemoclustermongodbdemo03EA1E3D": {
-      "DependsOn": [
-        "mongodbdemonetworkcontainermongodbdemoE0067F2E",
-      ],
-      "Properties": {
-        "ClusterType": "REPLICASET",
-        "Name": "atlas-cluster-clustermongodb-demo",
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "mongodbdemoprojectmongodbdemoE55901C9",
-            "Id",
-          ],
-        },
-        "ReplicationSpecs": [
-          {
-            "AdvancedRegionConfigs": [
-              {
-                "AnalyticsSpecs": {
-                  "EbsVolumeType": "STANDARD",
-                  "InstanceSize": "M10",
-                  "NodeCount": 1,
-                },
-                "ElectableSpecs": {
-                  "EbsVolumeType": "STANDARD",
-                  "InstanceSize": "M10",
-                  "NodeCount": 3,
-                },
-                "Priority": 7,
-                "RegionName": "US_EAST_1",
-              },
-            ],
-            "NumShards": 1,
-          },
-        ],
-      },
-      "Type": "MongoDB::Atlas::Cluster",
-    },
-    "mongodbdemodbusermongodbdemo12137F54": {
-      "Properties": {
-        "DatabaseName": "admin",
-        "Password": "atlas-pwd",
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "mongodbdemoprojectmongodbdemoE55901C9",
-            "Id",
-          ],
-        },
-        "Roles": [
-          {
-            "DatabaseName": "admin",
-            "RoleName": "atlasAdmin",
-          },
-        ],
-        "Username": "atlas-user",
-      },
-      "Type": "MongoDB::Atlas::DatabaseUser",
-    },
-    "mongodbdemoipaccesslistmongodbdemoBB12E559": {
-      "Properties": {
-        "AccessList": [
-          {
-            "Comment": "My first IP address",
-            "IPAddress": "0.0.0.0/0",
-          },
-        ],
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "mongodbdemoprojectmongodbdemoE55901C9",
-            "Id",
-          ],
-        },
-      },
-      "Type": "MongoDB::Atlas::ProjectIpAccessList",
-    },
-    "mongodbdemonetworkcontainermongodbdemoE0067F2E": {
-      "Properties": {
-        "AtlasCidrBlock": "192.168.248.0/21",
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "mongodbdemoprojectmongodbdemoE55901C9",
-            "Id",
-          ],
-        },
-        "Provisioned": true,
-        "RegionName": "US_EAST_1",
-        "VpcId": {
-          "Ref": "Vpc8378EB38",
-        },
-      },
-      "Type": "MongoDB::Atlas::NetworkContainer",
-    },
-    "mongodbdemonetworkpeeringmongodbdemo73016D46": {
-      "Properties": {
-        "AccepterRegionName": {
-          "Ref": "AWS::Region",
-        },
-        "AwsAccountId": {
-          "Ref": "AWS::AccountId",
-        },
-        "ContainerId": {
-          "Fn::GetAtt": [
-            "mongodbdemonetworkcontainermongodbdemoE0067F2E",
-            "Id",
-          ],
-        },
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "mongodbdemoprojectmongodbdemoE55901C9",
-            "Id",
-          ],
-        },
-        "RouteTableCIDRBlock": {
-          "Fn::GetAtt": [
-            "Vpc8378EB38",
-            "CidrBlock",
-          ],
-        },
-        "VpcId": {
-          "Ref": "Vpc8378EB38",
-        },
-      },
-      "Type": "MongoDB::Atlas::NetworkPeering",
-    },
-    "mongodbdemoprojectmongodbdemoE55901C9": {
-      "Properties": {
-        "Name": "project-projectmongodb-demo",
-        "OrgId": "618cb365c835351df903f6ba",
-        "Profile": "my-mongo-profile",
-      },
-      "Type": "MongoDB::Atlas::Project",
     },
   },
   "Rules": {

@@ -43,7 +43,7 @@ export class MongoDBAtlasBootstrap extends Construct {
     if (props?.secretProfile) {
       new MongoSecretProfile(this, 'MongoSecretProfile', this.secretProfile );
     }
-    for (let x of ['Cluster', 'Project', 'DatabaseUser', 'ProjectIpAccessList', 'NetworkContainer', 'NetworkPeering'] ) {
+    for (let x of ['Cluster', 'Project', 'DatabaseUser', 'ProjectIpAccessList', 'NetworkContainer', 'NetworkPeering', 'ServerlessInstance'] ) {
       new CfnOutput(this, `ActivateCmd${x}`, { value: `aws cloudformation activate-type --type-name MongoDB::Atlas::${x} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ${this.role.roleArn}` });
     }
   }

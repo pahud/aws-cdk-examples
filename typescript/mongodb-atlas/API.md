@@ -2,7 +2,7 @@
 
 This example walks you through building MongoDB Atlas cluster with AWS CDK.
 
-<img src=./images/peering-diagram.svg>
+<img src=./images/peering-diagram-serverless.svg>
 
 # How it works
 
@@ -48,12 +48,13 @@ Follow the commands in the `Outputs`, let's activate the relevant MongoDB Atlas 
 ```sh
 $ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
 ```
-(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer` and `MongoDB::Atlas::NetworkPeering`)
+(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer`, `MongoDB::Atlas::ServerlessInstance`
+and `MongoDB::Atlas::NetworkPeering`)
 
 Alternatively, if you are comfortable using for loop in the shell:
 
 ```sh
-$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering
+$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering ServerlessInstance
 > do
 > aws cloudformation activate-type --type-name MongoDB::Atlas::${i} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
 > done
@@ -77,14 +78,15 @@ Your are all set.
 
 # Create the Cluster with VPC Peering
 
-Now, Let's deploy `mongodb-demo-stack` that creates the cluster with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
+Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
 
 1. A new `Project` will be created.
 2. A new `DatabaseUser` will be created.
 3. A new `Cluster` will be created.
-4. A new `NetworkContainer` will be created.
-5. A new `NetworkPeering` will be created.
-6. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
+4. A new `ServerlessInstance` will be created.
+5. A new `NetworkContainer` will be created.
+6. A new `NetworkPeering` will be created.
+7. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
 
 On creation complete, the VPC peering will be established without any manual approval.
 
@@ -94,12 +96,23 @@ const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
 const vpc = getVpc(demoStack);
 const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
 
-new AtlasCluster(demoStack, 'mongodb-demo', {
+// create a ReplicaSet cluster
+const cluster = new AtlasCluster(demoStack, 'Cluster', {
+  clusterName: 'my-cluster',
   orgId,
   profile: secretProfile,
   replication,
   accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
   peering: { vpc, cidr: '192.168.248.0/21' },
+  clusterType: ClusterType.REPLICASET,
+});
+
+// create a serverless instance
+new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  instanceName: 'my-serverless-instance',
+  profile: secretProfile,
+  project: cluster.project,
+  continuousBackup: true,
 });
 ```
 
@@ -1670,6 +1683,334 @@ public readonly created: string;
 ---
 
 
+### ServerlessInstance <a name="ServerlessInstance" id="mongodb-atlas.ServerlessInstance"></a>
+
+- *Implements:* <a href="#mongodb-atlas.IServerlessInstance">IServerlessInstance</a>
+
+#### Initializers <a name="Initializers" id="mongodb-atlas.ServerlessInstance.Initializer"></a>
+
+```typescript
+import { ServerlessInstance } from 'mongodb-atlas'
+
+new ServerlessInstance(scope: Construct, id: string, props: ServerlessInstanceProps)
+```
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstance.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.Initializer.parameter.props">props</a></code> | <code><a href="#mongodb-atlas.ServerlessInstanceProps">ServerlessInstanceProps</a></code> | *No description.* |
+
+---
+
+##### `scope`<sup>Required</sup> <a name="scope" id="mongodb-atlas.ServerlessInstance.Initializer.parameter.scope"></a>
+
+- *Type:* constructs.Construct
+
+---
+
+##### `id`<sup>Required</sup> <a name="id" id="mongodb-atlas.ServerlessInstance.Initializer.parameter.id"></a>
+
+- *Type:* string
+
+---
+
+##### `props`<sup>Required</sup> <a name="props" id="mongodb-atlas.ServerlessInstance.Initializer.parameter.props"></a>
+
+- *Type:* <a href="#mongodb-atlas.ServerlessInstanceProps">ServerlessInstanceProps</a>
+
+---
+
+#### Methods <a name="Methods" id="Methods"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstance.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.applyRemovalPolicy">applyRemovalPolicy</a></code> | Apply the given removal policy to this resource. |
+
+---
+
+##### `toString` <a name="toString" id="mongodb-atlas.ServerlessInstance.toString"></a>
+
+```typescript
+public toString(): string
+```
+
+Returns a string representation of this construct.
+
+##### `applyRemovalPolicy` <a name="applyRemovalPolicy" id="mongodb-atlas.ServerlessInstance.applyRemovalPolicy"></a>
+
+```typescript
+public applyRemovalPolicy(policy: RemovalPolicy): void
+```
+
+Apply the given removal policy to this resource.
+
+The Removal Policy controls what happens to this resource when it stops
+being managed by CloudFormation, either because you've removed it from the
+CDK application or because you've made a change that requires the resource
+to be replaced.
+
+The resource can be deleted (`RemovalPolicy.DESTROY`), or left in your AWS
+account for data recovery and cleanup later (`RemovalPolicy.RETAIN`).
+
+###### `policy`<sup>Required</sup> <a name="policy" id="mongodb-atlas.ServerlessInstance.applyRemovalPolicy.parameter.policy"></a>
+
+- *Type:* aws-cdk-lib.RemovalPolicy
+
+---
+
+#### Static Functions <a name="Static Functions" id="Static Functions"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstance.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.isOwnedResource">isOwnedResource</a></code> | Returns true if the construct was created by CDK, and false otherwise. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.isResource">isResource</a></code> | Check whether the given construct is a Resource. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.fromServerlessInstanceAttributes">fromServerlessInstanceAttributes</a></code> | *No description.* |
+
+---
+
+##### ~~`isConstruct`~~ <a name="isConstruct" id="mongodb-atlas.ServerlessInstance.isConstruct"></a>
+
+```typescript
+import { ServerlessInstance } from 'mongodb-atlas'
+
+ServerlessInstance.isConstruct(x: any)
+```
+
+Checks if `x` is a construct.
+
+###### `x`<sup>Required</sup> <a name="x" id="mongodb-atlas.ServerlessInstance.isConstruct.parameter.x"></a>
+
+- *Type:* any
+
+Any object.
+
+---
+
+##### `isOwnedResource` <a name="isOwnedResource" id="mongodb-atlas.ServerlessInstance.isOwnedResource"></a>
+
+```typescript
+import { ServerlessInstance } from 'mongodb-atlas'
+
+ServerlessInstance.isOwnedResource(construct: IConstruct)
+```
+
+Returns true if the construct was created by CDK, and false otherwise.
+
+###### `construct`<sup>Required</sup> <a name="construct" id="mongodb-atlas.ServerlessInstance.isOwnedResource.parameter.construct"></a>
+
+- *Type:* constructs.IConstruct
+
+---
+
+##### `isResource` <a name="isResource" id="mongodb-atlas.ServerlessInstance.isResource"></a>
+
+```typescript
+import { ServerlessInstance } from 'mongodb-atlas'
+
+ServerlessInstance.isResource(construct: IConstruct)
+```
+
+Check whether the given construct is a Resource.
+
+###### `construct`<sup>Required</sup> <a name="construct" id="mongodb-atlas.ServerlessInstance.isResource.parameter.construct"></a>
+
+- *Type:* constructs.IConstruct
+
+---
+
+##### `fromServerlessInstanceAttributes` <a name="fromServerlessInstanceAttributes" id="mongodb-atlas.ServerlessInstance.fromServerlessInstanceAttributes"></a>
+
+```typescript
+import { ServerlessInstance } from 'mongodb-atlas'
+
+ServerlessInstance.fromServerlessInstanceAttributes(scope: Construct, id: string, attrs: ServerlessInstanceAttributes)
+```
+
+###### `scope`<sup>Required</sup> <a name="scope" id="mongodb-atlas.ServerlessInstance.fromServerlessInstanceAttributes.parameter.scope"></a>
+
+- *Type:* constructs.Construct
+
+---
+
+###### `id`<sup>Required</sup> <a name="id" id="mongodb-atlas.ServerlessInstance.fromServerlessInstanceAttributes.parameter.id"></a>
+
+- *Type:* string
+
+---
+
+###### `attrs`<sup>Required</sup> <a name="attrs" id="mongodb-atlas.ServerlessInstance.fromServerlessInstanceAttributes.parameter.attrs"></a>
+
+- *Type:* <a href="#mongodb-atlas.ServerlessInstanceAttributes">ServerlessInstanceAttributes</a>
+
+---
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.env">env</a></code> | <code>aws-cdk-lib.ResourceEnvironment</code> | The environment this resource belongs to. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.stack">stack</a></code> | <code>aws-cdk-lib.Stack</code> | The stack in which this resource is defined. |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.connectionString">connectionString</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.instanceId">instanceId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.instanceName">instanceName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.profile">profile</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.createDate">createDate</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.mongoDBVersion">mongoDBVersion</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.orgId">orgId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.stateName">stateName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstance.property.totalCount">totalCount</a></code> | <code>number</code> | *No description.* |
+
+---
+
+##### `node`<sup>Required</sup> <a name="node" id="mongodb-atlas.ServerlessInstance.property.node"></a>
+
+```typescript
+public readonly node: Node;
+```
+
+- *Type:* constructs.Node
+
+The tree node.
+
+---
+
+##### `env`<sup>Required</sup> <a name="env" id="mongodb-atlas.ServerlessInstance.property.env"></a>
+
+```typescript
+public readonly env: ResourceEnvironment;
+```
+
+- *Type:* aws-cdk-lib.ResourceEnvironment
+
+The environment this resource belongs to.
+
+For resources that are created and managed by the CDK
+(generally, those created by creating new class instances like Role, Bucket, etc.),
+this is always the same as the environment of the stack they belong to;
+however, for imported resources
+(those obtained from static methods like fromRoleArn, fromBucketName, etc.),
+that might be different than the stack they were imported into.
+
+---
+
+##### `stack`<sup>Required</sup> <a name="stack" id="mongodb-atlas.ServerlessInstance.property.stack"></a>
+
+```typescript
+public readonly stack: Stack;
+```
+
+- *Type:* aws-cdk-lib.Stack
+
+The stack in which this resource is defined.
+
+---
+
+##### `connectionString`<sup>Required</sup> <a name="connectionString" id="mongodb-atlas.ServerlessInstance.property.connectionString"></a>
+
+```typescript
+public readonly connectionString: string;
+```
+
+- *Type:* string
+
+---
+
+##### `instanceId`<sup>Required</sup> <a name="instanceId" id="mongodb-atlas.ServerlessInstance.property.instanceId"></a>
+
+```typescript
+public readonly instanceId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `instanceName`<sup>Required</sup> <a name="instanceName" id="mongodb-atlas.ServerlessInstance.property.instanceName"></a>
+
+```typescript
+public readonly instanceName: string;
+```
+
+- *Type:* string
+
+---
+
+##### `profile`<sup>Required</sup> <a name="profile" id="mongodb-atlas.ServerlessInstance.property.profile"></a>
+
+```typescript
+public readonly profile: string;
+```
+
+- *Type:* string
+
+---
+
+##### `project`<sup>Required</sup> <a name="project" id="mongodb-atlas.ServerlessInstance.property.project"></a>
+
+```typescript
+public readonly project: IProject;
+```
+
+- *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
+
+---
+
+##### `createDate`<sup>Optional</sup> <a name="createDate" id="mongodb-atlas.ServerlessInstance.property.createDate"></a>
+
+```typescript
+public readonly createDate: string;
+```
+
+- *Type:* string
+
+---
+
+##### `mongoDBVersion`<sup>Optional</sup> <a name="mongoDBVersion" id="mongodb-atlas.ServerlessInstance.property.mongoDBVersion"></a>
+
+```typescript
+public readonly mongoDBVersion: string;
+```
+
+- *Type:* string
+
+---
+
+##### `orgId`<sup>Optional</sup> <a name="orgId" id="mongodb-atlas.ServerlessInstance.property.orgId"></a>
+
+```typescript
+public readonly orgId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `stateName`<sup>Optional</sup> <a name="stateName" id="mongodb-atlas.ServerlessInstance.property.stateName"></a>
+
+```typescript
+public readonly stateName: string;
+```
+
+- *Type:* string
+
+---
+
+##### `totalCount`<sup>Optional</sup> <a name="totalCount" id="mongodb-atlas.ServerlessInstance.property.totalCount"></a>
+
+```typescript
+public readonly totalCount: number;
+```
+
+- *Type:* number
+
+---
+
+
 ## Structs <a name="Structs" id="Structs"></a>
 
 ### AccessList <a name="AccessList" id="mongodb-atlas.AccessList"></a>
@@ -1729,6 +2070,8 @@ const atlasClusterProps: AtlasClusterProps = { ... }
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.orgId">orgId</a></code> | <code>string</code> | The Organization ID for this cluster. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.profile">profile</a></code> | <code>string</code> | The profile for the secret. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.replication">replication</a></code> | <code><a href="#mongodb-atlas.ReplicationSpecs">ReplicationSpecs</a>[]</code> | The specs for replication. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.clusterName">clusterName</a></code> | <code>string</code> | Name of the cluster. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.clusterType">clusterType</a></code> | <code><a href="#mongodb-atlas.ClusterType">ClusterType</a></code> | Type of the cluster. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.peering">peering</a></code> | <code><a href="#mongodb-atlas.PeeringProps">PeeringProps</a></code> | VPC peering options with AWS. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | The project for this cluster. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | Region for the network container. |
@@ -1785,6 +2128,32 @@ public readonly replication: ReplicationSpecs[];
 The specs for replication.
 
 > [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/cluster/docs#replicationspecs](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master/cfn-resources/cluster/docs#replicationspecs)
+
+---
+
+##### `clusterName`<sup>Optional</sup> <a name="clusterName" id="mongodb-atlas.AtlasClusterProps.property.clusterName"></a>
+
+```typescript
+public readonly clusterName: string;
+```
+
+- *Type:* string
+- *Default:* auto-generated.
+
+Name of the cluster.
+
+---
+
+##### `clusterType`<sup>Optional</sup> <a name="clusterType" id="mongodb-atlas.AtlasClusterProps.property.clusterType"></a>
+
+```typescript
+public readonly clusterType: ClusterType;
+```
+
+- *Type:* <a href="#mongodb-atlas.ClusterType">ClusterType</a>
+- *Default:* ClusterType.REPLICASET,
+
+Type of the cluster.
 
 ---
 
@@ -2152,6 +2521,10 @@ mongoDBMajorVersion
 ---
 
 ### ClusterProps <a name="ClusterProps" id="mongodb-atlas.ClusterProps"></a>
+
+Properties to create a MongoDB Atlas cluster.
+
+> [https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Clusters/operation/createCluster)
 
 #### Initializer <a name="Initializer" id="mongodb-atlas.ClusterProps.Initializer"></a>
 
@@ -3792,6 +4165,227 @@ public readonly numShards: number;
 
 ---
 
+### ServerlessInstanceAttributes <a name="ServerlessInstanceAttributes" id="mongodb-atlas.ServerlessInstanceAttributes"></a>
+
+#### Initializer <a name="Initializer" id="mongodb-atlas.ServerlessInstanceAttributes.Initializer"></a>
+
+```typescript
+import { ServerlessInstanceAttributes } from 'mongodb-atlas'
+
+const serverlessInstanceAttributes: ServerlessInstanceAttributes = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstanceAttributes.property.instanceId">instanceId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstanceAttributes.property.instanceName">instanceName</a></code> | <code>string</code> | *No description.* |
+
+---
+
+##### `instanceId`<sup>Required</sup> <a name="instanceId" id="mongodb-atlas.ServerlessInstanceAttributes.property.instanceId"></a>
+
+```typescript
+public readonly instanceId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `instanceName`<sup>Required</sup> <a name="instanceName" id="mongodb-atlas.ServerlessInstanceAttributes.property.instanceName"></a>
+
+```typescript
+public readonly instanceName: string;
+```
+
+- *Type:* string
+
+---
+
+### ServerlessInstanceProps <a name="ServerlessInstanceProps" id="mongodb-atlas.ServerlessInstanceProps"></a>
+
+Properties to create a serverless instance.
+
+> [https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Serverless-Instances/operation/createServerlessInstance](https://www.mongodb.com/docs/atlas/reference/api-resources-spec/v2/#tag/Serverless-Instances/operation/createServerlessInstance)
+
+#### Initializer <a name="Initializer" id="mongodb-atlas.ServerlessInstanceProps.Initializer"></a>
+
+```typescript
+import { ServerlessInstanceProps } from 'mongodb-atlas'
+
+const serverlessInstanceProps: ServerlessInstanceProps = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.account">account</a></code> | <code>string</code> | The AWS account ID this resource belongs to. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.environmentFromArn">environmentFromArn</a></code> | <code>string</code> | ARN to deduce region and account from. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.physicalName">physicalName</a></code> | <code>string</code> | The value passed in by users to the physical name prop of the resource. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.region">region</a></code> | <code>string</code> | The AWS region this resource belongs to. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.profile">profile</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.awsRegion">awsRegion</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | Region for the network container. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.continuousBackup">continuousBackup</a></code> | <code>boolean</code> | Flag that indicates whether the serverless instance uses Serverless Continuous Backup. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.instanceName">instanceName</a></code> | <code>string</code> | Name of the instance. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.orgId">orgId</a></code> | <code>string</code> | The Organization ID for this cluster. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.terminationProtection">terminationProtection</a></code> | <code>boolean</code> | Flag that indicates whether termination protection is enabled on the serverless instance. |
+
+---
+
+##### `account`<sup>Optional</sup> <a name="account" id="mongodb-atlas.ServerlessInstanceProps.property.account"></a>
+
+```typescript
+public readonly account: string;
+```
+
+- *Type:* string
+- *Default:* the resource is in the same account as the stack it belongs to
+
+The AWS account ID this resource belongs to.
+
+---
+
+##### `environmentFromArn`<sup>Optional</sup> <a name="environmentFromArn" id="mongodb-atlas.ServerlessInstanceProps.property.environmentFromArn"></a>
+
+```typescript
+public readonly environmentFromArn: string;
+```
+
+- *Type:* string
+- *Default:* take environment from `account`, `region` parameters, or use Stack environment.
+
+ARN to deduce region and account from.
+
+The ARN is parsed and the account and region are taken from the ARN.
+This should be used for imported resources.
+
+Cannot be supplied together with either `account` or `region`.
+
+---
+
+##### `physicalName`<sup>Optional</sup> <a name="physicalName" id="mongodb-atlas.ServerlessInstanceProps.property.physicalName"></a>
+
+```typescript
+public readonly physicalName: string;
+```
+
+- *Type:* string
+- *Default:* The physical name will be allocated by CloudFormation at deployment time
+
+The value passed in by users to the physical name prop of the resource.
+
+`undefined` implies that a physical name will be allocated by
+  CloudFormation during deployment.
+- a concrete value implies a specific physical name
+- `PhysicalName.GENERATE_IF_NEEDED` is a marker that indicates that a physical will only be generated
+  by the CDK if it is needed for cross-environment references. Otherwise, it will be allocated by CloudFormation.
+
+---
+
+##### `region`<sup>Optional</sup> <a name="region" id="mongodb-atlas.ServerlessInstanceProps.property.region"></a>
+
+```typescript
+public readonly region: string;
+```
+
+- *Type:* string
+- *Default:* the resource is in the same region as the stack it belongs to
+
+The AWS region this resource belongs to.
+
+---
+
+##### `profile`<sup>Required</sup> <a name="profile" id="mongodb-atlas.ServerlessInstanceProps.property.profile"></a>
+
+```typescript
+public readonly profile: string;
+```
+
+- *Type:* string
+
+---
+
+##### `project`<sup>Required</sup> <a name="project" id="mongodb-atlas.ServerlessInstanceProps.property.project"></a>
+
+```typescript
+public readonly project: IProject;
+```
+
+- *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
+
+---
+
+##### `awsRegion`<sup>Optional</sup> <a name="awsRegion" id="mongodb-atlas.ServerlessInstanceProps.property.awsRegion"></a>
+
+```typescript
+public readonly awsRegion: AwsRegion;
+```
+
+- *Type:* <a href="#mongodb-atlas.AwsRegion">AwsRegion</a>
+- *Default:* US_EAST_1
+
+Region for the network container.
+
+---
+
+##### `continuousBackup`<sup>Optional</sup> <a name="continuousBackup" id="mongodb-atlas.ServerlessInstanceProps.property.continuousBackup"></a>
+
+```typescript
+public readonly continuousBackup: boolean;
+```
+
+- *Type:* boolean
+- *Default:* true
+
+Flag that indicates whether the serverless instance uses Serverless Continuous Backup.
+
+If this parameter is false, the serverless instance uses Basic Backup.
+
+---
+
+##### `instanceName`<sup>Optional</sup> <a name="instanceName" id="mongodb-atlas.ServerlessInstanceProps.property.instanceName"></a>
+
+```typescript
+public readonly instanceName: string;
+```
+
+- *Type:* string
+
+Name of the instance.
+
+---
+
+##### `orgId`<sup>Optional</sup> <a name="orgId" id="mongodb-atlas.ServerlessInstanceProps.property.orgId"></a>
+
+```typescript
+public readonly orgId: string;
+```
+
+- *Type:* string
+
+The Organization ID for this cluster.
+
+---
+
+##### `terminationProtection`<sup>Optional</sup> <a name="terminationProtection" id="mongodb-atlas.ServerlessInstanceProps.property.terminationProtection"></a>
+
+```typescript
+public readonly terminationProtection: boolean;
+```
+
+- *Type:* boolean
+- *Default:* false
+
+Flag that indicates whether termination protection is enabled on the serverless instance.
+
+If set to true, MongoDB Cloud won't delete the serverless instance. If set to false, MongoDB Cloud will delete the serverless instance.
+
+---
+
 ### Specs <a name="Specs" id="mongodb-atlas.Specs"></a>
 
 #### Initializer <a name="Initializer" id="mongodb-atlas.Specs.Initializer"></a>
@@ -4128,6 +4722,84 @@ public readonly created: string;
 ```
 
 - *Type:* string
+
+---
+
+### IServerlessInstance <a name="IServerlessInstance" id="mongodb-atlas.IServerlessInstance"></a>
+
+- *Implemented By:* <a href="#mongodb-atlas.ServerlessInstance">ServerlessInstance</a>, <a href="#mongodb-atlas.IServerlessInstance">IServerlessInstance</a>
+
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.instanceId">instanceId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.instanceName">instanceName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.createDate">createDate</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.mongoDBVersion">mongoDBVersion</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.stateName">stateName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IServerlessInstance.property.totalCount">totalCount</a></code> | <code>number</code> | *No description.* |
+
+---
+
+##### `instanceId`<sup>Required</sup> <a name="instanceId" id="mongodb-atlas.IServerlessInstance.property.instanceId"></a>
+
+```typescript
+public readonly instanceId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `instanceName`<sup>Required</sup> <a name="instanceName" id="mongodb-atlas.IServerlessInstance.property.instanceName"></a>
+
+```typescript
+public readonly instanceName: string;
+```
+
+- *Type:* string
+
+---
+
+##### `createDate`<sup>Optional</sup> <a name="createDate" id="mongodb-atlas.IServerlessInstance.property.createDate"></a>
+
+```typescript
+public readonly createDate: string;
+```
+
+- *Type:* string
+
+---
+
+##### `mongoDBVersion`<sup>Optional</sup> <a name="mongoDBVersion" id="mongodb-atlas.IServerlessInstance.property.mongoDBVersion"></a>
+
+```typescript
+public readonly mongoDBVersion: string;
+```
+
+- *Type:* string
+
+---
+
+##### `stateName`<sup>Optional</sup> <a name="stateName" id="mongodb-atlas.IServerlessInstance.property.stateName"></a>
+
+```typescript
+public readonly stateName: string;
+```
+
+- *Type:* string
+
+---
+
+##### `totalCount`<sup>Optional</sup> <a name="totalCount" id="mongodb-atlas.IServerlessInstance.property.totalCount"></a>
+
+```typescript
+public readonly totalCount: number;
+```
+
+- *Type:* number
 
 ---
 

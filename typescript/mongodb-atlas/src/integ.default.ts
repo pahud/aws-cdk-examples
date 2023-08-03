@@ -3,8 +3,8 @@ import {
   aws_ec2 as ec2,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { AtlasCluster, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion } from '.';
 import { MongoDBAtlasBootstrap } from './bootstrap';
+import { AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion, ClusterType } from './index';
 
 const app = new App();
 const env = { region: process.env.CDK_DEFAULT_REGION, account: process.env.CDK_DEFAULT_ACCOUNT };
@@ -40,16 +40,26 @@ const replication: ReplicationSpecs[] = [
   },
 ];
 
-
 const vpc = getVpc(demoStack);
 const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
 
-new AtlasCluster(demoStack, 'mongodb-demo', {
+// create the ReplicaSet cluster
+const cluster = new AtlasCluster(demoStack, 'Cluster', {
+  clusterName: 'my-cluster',
   orgId,
   profile: secretProfile,
   replication,
   accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
   peering: { vpc, cidr: '192.168.248.0/21' },
+  clusterType: ClusterType.REPLICASET,
+});
+
+// create a serverless instance
+new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  instanceName: 'my-serverless-instance',
+  profile: secretProfile,
+  project: cluster.project,
+  continuousBackup: true,
 });
 
 function getVpc(scope: Construct): ec2.IVpc {
