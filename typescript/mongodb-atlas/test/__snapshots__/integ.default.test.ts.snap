@@ -429,7 +429,7 @@ exports[`default validation 2`] = `
           "S3Bucket": {
             "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
           },
-          "S3Key": "b8f2db2aaf802c5b744d116138f305e4ad0a6c198ccb4225f7fa4b312c006d10.zip",
+          "S3Key": "16913b75dfde1e173c826fe8ff63f11ae78620f808015d23d446080cc0b5e37a.zip",
         },
         "Handler": "vpc-peering-handler.on_event",
         "Role": {

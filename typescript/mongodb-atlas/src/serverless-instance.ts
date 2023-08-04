@@ -24,7 +24,7 @@ export interface ServerlessInstanceAttributes {
  */
 export interface ServerlessInstanceProps extends ResourceProps {
   readonly profile: string;
-  readonly project: IProject;
+  readonly project?: IProject;
   /**
    * The Organization ID for this cluster.
    */
@@ -86,7 +86,7 @@ export class ServerlessInstance extends Resource implements IServerlessInstance 
     this.instanceName = props.instanceName ?? `atlas-serverlessInstance-${id}`;
     const resource = new CfnServerlessInstance(this, 'Resource', {
       name: this.instanceName,
-      projectId: props.project.projectId,
+      projectId: this.project.projectId,
       profile: props.profile,
       providerSettings: {
         providerName: ServerlessInstanceProviderSettingsProviderName.SERVERLESS,

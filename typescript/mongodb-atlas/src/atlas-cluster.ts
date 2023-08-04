@@ -112,8 +112,6 @@ export class AtlasCluster extends Construct {
     this.databaseUser = this.createDatabaseUser(id);
     this.ipAccessList = this.createIpAccessList(id);
 
-    // determine the region
-
     if (props.peering) {
       // create network container
       const container = new CfnNetworkContainer(this, `networkcontainer${id}`, {
