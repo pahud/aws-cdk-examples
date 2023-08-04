@@ -9,7 +9,7 @@ def random_date(start_date, end_date):
     random_days = random.randint(0, time_delta.days)
     return start_date + timedelta(days=random_days)
 
-def lambda_handler(event, context):
+def handler(event, context):
   client = boto3.client('secretsmanager')
   secretArn = os.environ.get('CONN_STRING_SECRET')
   uri = client.get_secret_value(

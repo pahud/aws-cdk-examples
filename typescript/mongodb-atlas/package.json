@@ -34,6 +34,7 @@
     "organization": false
   },
   "devDependencies": {
+    "@aws-cdk/aws-lambda-python-alpha": "^2.80.0-alpha.0",
     "@types/jest": "^29.5.3",
     "@types/node": "^16",
     "@typescript-eslint/eslint-plugin": "^5",
@@ -64,6 +65,7 @@
     "constructs": "^10.0.5"
   },
   "dependencies": {
+    "@aws-cdk/aws-lambda-python-alpha": "^2.80.0-alpha.0",
     "awscdk-resources-mongodbatlas": "^1.0.2"
   },
   "keywords": [

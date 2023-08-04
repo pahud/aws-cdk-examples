@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import {
   App, Stack, SecretValue,
   aws_lambda as lambda,
@@ -83,10 +84,11 @@ const connectionStringSecret = new secretsmanager.Secret(demoStack, 'ConnectionS
 new CfnOutput(demoStack, 'ConnectionStringSecretName', { value: connectionStringSecret.secretName });
 
 // The demo lambda function.
-const handler = new lambda.Function(demoStack, 'LambdaFunc', {
-  code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/playground/dist')),
+const handler = new PythonFunction(demoStack, 'LambdaFunc', {
+  entry: path.join(__dirname, '../lambda/playground'),
   runtime: lambda.Runtime.PYTHON_3_10,
-  handler: 'index.lambda_handler',
+  handler: 'handler',
+  index: 'index.py',
   vpc,
   environment: {
     CONN_STRING_SECRET: connectionStringSecret.secretArn,
