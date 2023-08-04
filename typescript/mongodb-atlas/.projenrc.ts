@@ -10,6 +10,10 @@ const project = new awscdk.AwsCdkConstructLibrary({
   repositoryUrl: 'https://github.com/aws-samples/aws-cdk-examples.git',
   deps: [
     'awscdk-resources-mongodbatlas',
+    '@aws-cdk/aws-lambda-python-alpha@^2.80.0-alpha.0',
+  ],
+  peerDeps: [
+    '@aws-cdk/aws-lambda-python-alpha@^2.80.0-alpha.0',
   ],
   devDeps: [
     'aws-cdk@2.80.0',

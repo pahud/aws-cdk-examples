@@ -76,17 +76,20 @@ $ aws secretsmanager update-secret --secret-id cfn/atlas/profile/my-mongo-profil
 
 Your are all set.
 
-# Create the Cluster with VPC Peering
+# Demo
 
-Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. What happens when you deploy the Demo stack:
+Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. The following resources will be created when you deploy the Demo stack:
 
-1. A new `Project` will be created.
-2. A new `DatabaseUser` will be created.
-3. A new `Cluster` will be created.
-4. A new `ServerlessInstance` will be created.
-5. A new `NetworkContainer` will be created.
-6. A new `NetworkPeering` will be created.
-7. A custom resource `Custom::VpcPeeringHandler` will automatically accept the VPC peering request from MongoDB Atlas.
+1. A new `Project`
+2. A new `DatabaseUser`
+3. A new `Cluster`
+4. A new `ServerlessInstance`
+5. A new `NetworkContainer`
+6. A new `NetworkPeering`
+7. A custom resource `Custom::VpcPeeringHandler` that will automatically accept the VPC peering request from MongoDB Atlas.
+8. A new secret for the connection string
+9. A demo Lambda Function
+10. An API Gateway REST API
 
 On creation complete, the VPC peering will be established without any manual approval.
 
@@ -116,23 +119,22 @@ new ServerlessInstance(demoStack, 'ServerlessInstance', {
 });
 ```
 
-Read [src/integ.default.ts](./src/integ.default.ts) for the full sample.
-
+Read [src/integ.default.ts](./src/integ.default.ts) for the full sample including the Lambda function and API Gateway REST API.
 
 The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
 
-The following sample deploy the MongoDB Atlas clsuter and VPC peering with my default VPC:
+Deploy everthing mentioned above:
 
 ```sh
 $ export MONGODB_ATLAS_ORG_ID='your_org_id'
 $ npx cdk deploy mongodb-demo-stack -c use_default_vpc=1
 ```
 
-On deployment completed, check out the cluster in your MongoDB Atlas console:
+On deployment completed, check out the cluster and serverless instance in your MongoDB Atlas console:
 
 <img src=./images/cluster.png>
 
-As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC through VPC peering. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
 
 The cluster connection string can be found in the outputs:
 
@@ -169,6 +171,53 @@ config  204.00 KiB
 local   492.00 KiB
 Atlas atlas-3h7l0v-shard-0 [primary] test>
 ```
+
+# RESTful API with API Gateway, Lambda and MongoDB Atlas ServerlessInstance
+
+Go to MongoDB Atlas console and find the connection string for pymongo.
+
+For example:
+
+```
+mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?retryWrites=true&w=majority
+```
+(make sure to replace <password> with your password)
+
+Update the secret
+
+```sh
+$ aws secretsmanager update-secret --secret-id cfn/atlas/connectionString/default --secret-string "mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?retryWrites=true&w=majority"
+```
+
+OK. Let's open the REST API endpoint from the CDK output:
+
+```sh
+$ curl -s https://5momhqf3h2.execute-api.us-east-1.amazonaws.com/prod/ | jq .
+{
+  "sales_2023": 256,
+  "results": [
+    {
+      "_id": "jkl",
+      "totalSaleAmount": 8863
+    },
+    {
+      "_id": "abc",
+      "totalSaleAmount": 14874
+    },
+    {
+      "_id": "xyz",
+      "totalSaleAmount": 10800
+    },
+    {
+      "_id": "def",
+      "totalSaleAmount": 11877
+    }
+  ]
+}
+```
+
+Congratulations! You have deployed a modern serverless application running on Amazon API Gateway, AWS Lambda and MongoDB Atlas!
+
 
 # How does the client DNS resolve the cluster IP addresses
 
@@ -252,6 +301,12 @@ accessList: vpc.privateSubnets.map(s => ({ ipAddress: s.ipv4CidrBlock, comment: 
 
 Answer: No, the goal of the bootstrap stack is to create a shared cloudformation extension execution role and secret for public and private keys. You don't need to re-bootstrap for additional clusters if you are using the same key pair. However, if you have to use different key pair, you will need to create a different Secret and grant the read to the cloudformation extension execution role. Check out [bootstrap.ts](./src/bootstrap.ts) for more details.
 
+**Question: Does ServerlessInstance support VPC Peering?**
+
+Answer: No, according to MongoDB Atlas [document](https://www.mongodb.com/docs/atlas/reference/serverless-instance-limitations/), network peering is not supported. We will include the vpc private endpoint support in this sample in the future. Before that, you are encouraged to follow the MongoDB Atlas [document](https://www.mongodb.com/docs/atlas/security-private-endpoint/) to enable the VPC private endpoint for your
+serverless instance or cluster.
+
+At this moment, VPC peering is supported for the cluster only.
 
 # API Reference <a name="API Reference" id="api-reference"></a>
 
@@ -4227,11 +4282,11 @@ const serverlessInstanceProps: ServerlessInstanceProps = { ... }
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.physicalName">physicalName</a></code> | <code>string</code> | The value passed in by users to the physical name prop of the resource. |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.region">region</a></code> | <code>string</code> | The AWS region this resource belongs to. |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.profile">profile</a></code> | <code>string</code> | *No description.* |
-| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.awsRegion">awsRegion</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | Region for the network container. |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.continuousBackup">continuousBackup</a></code> | <code>boolean</code> | Flag that indicates whether the serverless instance uses Serverless Continuous Backup. |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.instanceName">instanceName</a></code> | <code>string</code> | Name of the instance. |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.orgId">orgId</a></code> | <code>string</code> | The Organization ID for this cluster. |
+| <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
 | <code><a href="#mongodb-atlas.ServerlessInstanceProps.property.terminationProtection">terminationProtection</a></code> | <code>boolean</code> | Flag that indicates whether termination protection is enabled on the serverless instance. |
 
 ---
@@ -4309,16 +4364,6 @@ public readonly profile: string;
 
 ---
 
-##### `project`<sup>Required</sup> <a name="project" id="mongodb-atlas.ServerlessInstanceProps.property.project"></a>
-
-```typescript
-public readonly project: IProject;
-```
-
-- *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
-
----
-
 ##### `awsRegion`<sup>Optional</sup> <a name="awsRegion" id="mongodb-atlas.ServerlessInstanceProps.property.awsRegion"></a>
 
 ```typescript
@@ -4368,6 +4413,16 @@ public readonly orgId: string;
 - *Type:* string
 
 The Organization ID for this cluster.
+
+---
+
+##### `project`<sup>Optional</sup> <a name="project" id="mongodb-atlas.ServerlessInstanceProps.property.project"></a>
+
+```typescript
+public readonly project: IProject;
+```
+
+- *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
 
 ---
 

@@ -1,10 +1,16 @@
+import * as path from 'path';
+import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import {
-  App, Stack,
-  aws_ec2 as ec2,
+  App, Stack, SecretValue,
+  aws_lambda as lambda,
+  aws_apigateway as apigw,
+  aws_secretsmanager as secretsmanager,
+  CfnOutput,
 } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import { MongoDBAtlasBootstrap } from './bootstrap';
-import { AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion, ClusterType } from './index';
+import {
+  MongoDBAtlasBootstrap, AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion,
+  ClusterType, getVpc,
+} from './index';
 
 const app = new App();
 const env = { region: process.env.CDK_DEFAULT_REGION, account: process.env.CDK_DEFAULT_ACCOUNT };
@@ -49,23 +55,49 @@ const cluster = new AtlasCluster(demoStack, 'Cluster', {
   orgId,
   profile: secretProfile,
   replication,
-  accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
+  accessList: [
+    // { ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' },
+    { ipAddress: '0.0.0.0/0', comment: 'allow all' },
+  ],
   peering: { vpc, cidr: '192.168.248.0/21' },
   clusterType: ClusterType.REPLICASET,
 });
 
 // create a serverless instance
 new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  orgId,
   instanceName: 'my-serverless-instance',
   profile: secretProfile,
   project: cluster.project,
   continuousBackup: true,
 });
 
-function getVpc(scope: Construct): ec2.IVpc {
-  return scope.node.tryGetContext('use_default_vpc') === '1' ?
-    ec2.Vpc.fromLookup(scope, 'Vpc', { isDefault: true }) :
-    scope.node.tryGetContext('use_vpc_id') != undefined ?
-      ec2.Vpc.fromLookup(scope, 'Vpc', { vpcId: scope.node.tryGetContext('use_vpc_id') }) :
-      new ec2.Vpc(scope, 'Vpc', { natGateways: 1 });
-}
+/**
+ * Create a secret to store the connection string and password.
+ * Lambda function will retrieve this secret for the connection string and
+ * connect to the MongoDB.
+ */
+const connectionStringSecret = new secretsmanager.Secret(demoStack, 'ConnectionStringSecret', {
+  secretName: 'cfn/atlas/connectionString/default',
+  secretStringValue: SecretValue.unsafePlainText('changeMe'),
+});
+new CfnOutput(demoStack, 'ConnectionStringSecretName', { value: connectionStringSecret.secretName });
+
+// The demo lambda function.
+const handler = new PythonFunction(demoStack, 'LambdaFunc', {
+  entry: path.join(__dirname, '../lambda/playground'),
+  runtime: lambda.Runtime.PYTHON_3_10,
+  handler: 'handler',
+  index: 'index.py',
+  vpc,
+  environment: {
+    CONN_STRING_SECRET: connectionStringSecret.secretArn,
+  },
+});
+
+// allow the lambda to read the connection string secret
+connectionStringSecret.grantRead(handler);
+
+// create the API Gateway API with the lambda handler.
+new apigw.LambdaRestApi(demoStack, 'RestAPI', { handler });
+
