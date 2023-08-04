@@ -1,12 +1,22 @@
 # MongoDB Atlas Reference Architecture with AWS CDK
 
-This example walks you through building MongoDB Atlas cluster with AWS CDK.
+This example walks you through building a serverless application using MongoDB Atlas cluster and  serverless instance using AWS CDK.
 
 <img src=./images/peering-diagram-serverless-api.svg>
 
 # How it works
 
-[AWS Cloudformation extensions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html) allows users to use cloudformation resource types by third-party publishers. With the availability of [CDK constructs provided by MongoDB Atlas](https://github.com/mongodb/mongodbatlas-cloudformation-resources), users are allowed to use AWS CDK to synthesize cloudformation resources with the public extensions provided by MongoDB Atlas and deploy all supported resources such as `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser` and `MongoDB::Atlas::Project`.
+[AWS Cloudformation extensions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html) allows users to use cloudformation resource types by third-party publishers. With the availability of [CDK constructs provided by MongoDB Atlas](https://github.com/mongodb/awscdk-resources-mongodbatlas), users are allowed to use AWS CDK to synthesize cloudformation resources with the public extensions provided by MongoDB Atlas and deploy all supported resources such as `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser` and `MongoDB::Atlas::Project`.
+
+While you just focus on AWS CDK, the builder experience is like:
+
+```ts
+// build a replica-set cluster
+new AtlasCluster(scope, id, props);
+
+// build a serverless instance
+new ServerlessInstance(scope, id, props);
+```
 
 Before using the public extensions, you will need to configure the environment including:
 
@@ -18,7 +28,7 @@ This examples aims to provide a CDK-native experience to streamline your first M
 
 # Bootstrap your environment
 
-If it's your first time using AWS CDK to create MongoDB Atlas cluster, you will need to configure your environment as described above. This example comes with a `MongoDBAtlasBootstrap` construct that generates and configures everything for you as mentioned above including:
+If it's your first time using AWS CDK to create MongoDB Atlas cluster, you need to configure your environment as described above. This example comes with a `MongoDBAtlasBootstrap` construct that generates and configures everything for you as mentioned above including:
 
 1. Create a cloudformation extension IAM execution role and required permissions(see [doc](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html)).
 2. Create a custom profile secret to store public and private API keys(see [doc](https://github.com/mongodb/mongodbatlas-cloudformation-resources#1-configure-your-mongodb-atlas-api-keys)).
@@ -51,7 +61,7 @@ $ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publish
 (You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer`, `MongoDB::Atlas::ServerlessInstance`
 and `MongoDB::Atlas::NetworkPeering`)
 
-Alternatively, if you are comfortable using for loop in the shell:
+Alternatively, if you feel at ease employing loops in the shell:
 
 ```sh
 $ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering ServerlessInstance
@@ -63,7 +73,7 @@ $ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer Net
 
 Last but not least, update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
-> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in the organization.
+> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in this demo.
 
 Update the key pair in the generated secret with AWS CLI:
 
@@ -78,7 +88,7 @@ Your are all set.
 
 # Demo
 
-Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. The following resources will be created when you deploy the Demo stack:
+Now, Let's deploy the `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance. The following resources will be created when you deploy the Demo stack:
 
 1. A new `Project`
 2. A new `DatabaseUser`
@@ -87,69 +97,61 @@ Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a s
 5. A new `NetworkContainer`
 6. A new `NetworkPeering`
 7. A custom resource `Custom::VpcPeeringHandler` that will automatically accept the VPC peering request from MongoDB Atlas.
-8. A new secret for the connection string
+8. A new secret to store the connection string
 9. A demo Lambda Function
 10. An API Gateway REST API
 
 On creation complete, the VPC peering will be established without any manual approval.
 
-```ts
-const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
-
-const vpc = getVpc(demoStack);
-const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
-
-// create a ReplicaSet cluster
-const cluster = new AtlasCluster(demoStack, 'Cluster', {
-  clusterName: 'my-cluster',
-  orgId,
-  profile: secretProfile,
-  replication,
-  accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
-  peering: { vpc, cidr: '192.168.248.0/21' },
-  clusterType: ClusterType.REPLICASET,
-});
-
-// create a serverless instance
-new ServerlessInstance(demoStack, 'ServerlessInstance', {
-  instanceName: 'my-serverless-instance',
-  profile: secretProfile,
-  project: cluster.project,
-  continuousBackup: true,
-});
-```
-
 Read [src/integ.default.ts](./src/integ.default.ts) for the full sample including the Lambda function and API Gateway REST API.
 
-The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
+The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing both context variables.
 
-Deploy everthing mentioned above:
+Deploy it now:
 
 ```sh
 $ export MONGODB_ATLAS_ORG_ID='your_org_id'
+$ npx cdk diff mongodb-demo-stack -c use_default_vpc=1
 $ npx cdk deploy mongodb-demo-stack -c use_default_vpc=1
 ```
 
 On deployment completed, check out the cluster and serverless instance in your MongoDB Atlas console:
 
-<img src=./images/cluster.png>
+<img src=./images/cluster-serverless-instance.png>
 
-As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC through VPC peering. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+And you should see the CDK Outputs like this:
 
-The cluster connection string can be found in the outputs:
+```
+mongodb-demo-stack.ClusterVpcPeeringConnectionId734C7A5C = pcx-0e826d4b5b3c4f0b0
+mongodb-demo-stack.ClusterconnectionStrings17813228 = mongodb+srv://my-cluster.yti1n.mongodb.net
+mongodb-demo-stack.ConnectionStringSecretName = cfn/atlas/connectionString/default
+mongodb-demo-stack.RestAPIEndpointB14C3C54 = https://nin9xjrzn0.execute-api.us-east-1.amazonaws.com/prod/
+mongodb-demo-stack.ServerlessInstanceConnectionStringB32B56D6 = mongodb+srv://my-serverless-instance.bahxo51.mongodb.net
+```
+
+# AtlasCluster
+
+Before we talk about the cluster. Let's first discuss how MongoDB Atlas interconnect with your VPC.
+
+At this moment, MongoDB Atlas supports `VPC Peering` and `VPC private endpoint`.
+
+**VPC Peering**: Allow your VPC traffic route to MongoDB Atlas VPC. **You need to update your routing tables** to add an additional route to Atlas CIDR block.
+
+**VPC Private Endpoint**: It essentially create a private endpoint interface in your VPC private subnet, the DNS name of the connection string will be resolved to the private IP of the endpoint interface that forward the connection to the NLB in MongoDB Atlas environment. You don't need to update your routing tables. 
+
+
+As this cluster is VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC through VPC peering. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+
+Find the connection string for the cluster in CDK outputs or in the MongoDB Atlas console.
 
 ```
 Outputs:
-mongodb-demo-stack.mongodbdemoVpcPeeringConnectionId81345C3A = pcx-0780121d0755b997c
 mongodb-demo-stack.mongodbdemoconnectionStrings6DEDB530 = mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net
 ```
 
 # Connect your cluster from your VPC
 
-Re-generate the password for the default database user `atlas-user ` and get the connection URI from the console or simply use the one
-from the Outputs.
-
-For example, connect to the cluster from an Amazon Linux instance using `mongosh`:
+Connect to the cluster from an Amazon Linux instance using `mongosh`:
 
 ```sh
 $ mongosh "mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net/" --apiVersion 1 --username atlas-user
@@ -171,10 +173,33 @@ config  204.00 KiB
 local   492.00 KiB
 Atlas atlas-3h7l0v-shard-0 [primary] test> 
 ```
+(You can generate your password in the console)
+
+
+# ServerlessInstance
+
+MongoDB Atlas `ServerlessInstance` is designed for serverless applications with variable or infrequent traffic. 
+
+To create a ServerlessInstance:
+
+```ts
+// create a serverless instance
+new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  orgId,
+  instanceName: 'my-serverless-instance',
+  profile: secretProfile,
+  continuousBackup: true,
+});
+```
+
+check [src/integ.default.ts](./src/integ.default.ts) for more details.
+
+As `ServerlessInstance` does not support VPC peering and the VPC private endpoint is not provided as CDK L1 construct by MongoDB Atlas at this moment, for now we will just tentatively connect the ServerlessInstance from Lambda function through the public internet. After the VPC private endpoint construct is available, we will update this sample using private endpoint instead. 
+
 
 # RESTful API with API Gateway, Lambda and MongoDB Atlas ServerlessInstance
 
-Go to MongoDB Atlas console and find the connection string for pymongo.
+Go to MongoDB Atlas console and find the connection string for Python driver.
 
 For example:
 
@@ -183,7 +208,7 @@ mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?
 ```
 (make sure to replace <password> with your password)
 
-Update the secret
+Update the secret with full connection string. This secret will be retrived when Lambda function is invoked.
 
 ```sh
 $ aws secretsmanager update-secret --secret-id cfn/atlas/connectionString/default --secret-string "mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?retryWrites=true&w=majority"
@@ -194,23 +219,23 @@ OK. Let's open the REST API endpoint from the CDK output:
 ```sh
 $ curl -s https://5momhqf3h2.execute-api.us-east-1.amazonaws.com/prod/ | jq .
 {
-  "sales_2023": 256,
+  "sales_2023": 33,
   "results": [
     {
-      "_id": "jkl",
-      "totalSaleAmount": 8863
+      "_id": "def",
+      "totalSaleAmount": 1669
     },
     {
       "_id": "abc",
-      "totalSaleAmount": 14874
+      "totalSaleAmount": 2646
+    },
+    {
+      "_id": "jkl",
+      "totalSaleAmount": 1490
     },
     {
       "_id": "xyz",
-      "totalSaleAmount": 10800
-    },
-    {
-      "_id": "def",
-      "totalSaleAmount": 11877
+      "totalSaleAmount": 1247
     }
   ]
 }
@@ -252,8 +277,6 @@ $ dig atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net.
 atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net. 60 IN CNAME ec2-34-227-203-248.compute-1.amazonaws.com.
 ec2-34-227-203-248.compute-1.amazonaws.com. 20 IN A 192.168.254.210
 ```
-
-Now, your MongoDB client in your VPC should be able to access the provisioned cluster through a secure peering network without routing to the public internet.
 
 # clean up
 
