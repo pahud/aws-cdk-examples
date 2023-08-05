@@ -1,11 +1,6 @@
 {
   "dependencies": [
     {
-      "name": "@aws-cdk/aws-lambda-python-alpha",
-      "version": "^2.80.0-alpha.0",
-      "type": "build"
-    },
-    {
       "name": "@types/jest",
       "type": "build"
     },
@@ -112,6 +107,11 @@
     {
       "name": "typescript",
       "type": "build"
+    },
+    {
+      "name": "@aws-cdk/aws-lambda-python-alpha",
+      "version": "^2.80.0-alpha.0",
+      "type": "peer"
     },
     {
       "name": "aws-cdk-lib",
