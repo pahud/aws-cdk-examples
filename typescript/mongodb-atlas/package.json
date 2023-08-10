@@ -43,7 +43,7 @@
     "constructs": "10.0.5",
     "eslint": "^8",
     "eslint-import-resolver-node": "^0.3.9",
-    "eslint-import-resolver-typescript": "^3.5.5",
+    "eslint-import-resolver-typescript": "^3.6.0",
     "eslint-plugin-import": "^2.28.0",
     "jest": "^29.6.2",
     "jest-junit": "^15",
@@ -53,7 +53,7 @@
     "jsii-pacmak": "^1.86.1",
     "jsii-rosetta": "~5.0.0",
     "npm-check-updates": "^16",
-    "projen": "^0.72.6",
+    "projen": "^0.72.7",
     "standard-version": "^9",
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.1",
@@ -66,7 +66,7 @@
   },
   "dependencies": {
     "@aws-cdk/aws-lambda-python-alpha": "^2.80.0-alpha.0",
-    "awscdk-resources-mongodbatlas": "^1.0.2"
+    "awscdk-resources-mongodbatlas": "^1.1.0"
   },
   "keywords": [
     "cdk"
