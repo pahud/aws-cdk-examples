@@ -9,7 +9,7 @@ import {
 } from 'aws-cdk-lib';
 import {
   MongoDBAtlasBootstrap, AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion,
-  ClusterType, getVpc,
+  ClusterType, getVpc, AtlasCfnType,
 } from './index';
 
 const app = new App();
@@ -22,6 +22,15 @@ const secretProfile = 'my-mongo-profile';
 new MongoDBAtlasBootstrap(bootstrapStack, 'mongoCdkBootstrap', {
   roleName: 'cfn-ext-exec-role-for-mongo',
   secretProfile,
+  typesToActivate: [
+    AtlasCfnType.CLUSTER,
+    AtlasCfnType.PROJECT,
+    AtlasCfnType.DATABASE_USER,
+    AtlasCfnType.PROJECT_IP_ACCESS_LIST,
+    AtlasCfnType.NETWORK_CONTAINER,
+    AtlasCfnType.NETWORK_PEERING,
+    AtlasCfnType.SERVERLESS_INSTANCE,
+  ],
 });
 
 const replication: ReplicationSpecs[] = [
