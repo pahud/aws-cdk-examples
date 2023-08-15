@@ -52,26 +52,7 @@ $ npx cdk diff mongo-cdk-bootstrap
 $ npx cdk deploy mongo-cdk-bootstrap
 ```
 
-Follow the commands in the `Outputs`, let's activate the relevant MongoDB Atlas cloudformation extensions. e.g.
-
-
-```sh
-$ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
-```
-(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer`, `MongoDB::Atlas::ServerlessInstance`
-and `MongoDB::Atlas::NetworkPeering`)
-
-Alternatively, if you feel at ease employing loops in the shell:
-
-```sh
-$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering ServerlessInstance
-> do
-> aws cloudformation activate-type --type-name MongoDB::Atlas::${i} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
-> done
-```
-(replace `123456789012` with your AWS account ID)
-
-Last but not least, update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
+Update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
 > Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in this demo.
 

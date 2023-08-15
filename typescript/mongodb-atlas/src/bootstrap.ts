@@ -2,8 +2,20 @@ import {
   CfnOutput, SecretValue,
   aws_iam as iam,
   aws_secretsmanager as secretsmanager,
+  aws_cloudformation as cloudformation,
 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+
+export enum AtlasCfnType {
+  CLUSTER = 'Cluster',
+  PROJECT = 'Project',
+  DATABASE_USER = 'DatabaseUser',
+  PROJECT_IP_ACCESS_LIST = 'ProjectIpAccessList',
+  NETWORK_CONTAINER = 'NetworkContainer',
+  NETWORK_PEERING = 'NetworkPeering',
+  SERVERLESS_INSTANCE = 'ServerlessInstance',
+}
+
 
 export class MongoDBAtlasBootstrapProps {
   /**
@@ -19,6 +31,12 @@ export class MongoDBAtlasBootstrapProps {
    * @see https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master#2-configure-your-profile
    */
   readonly secretProfile?: string;
+
+  /**
+   * CloudFormation extension types to activate.
+   * @default CLUSTER, PROJECT, DATABASE_USER, PROJECT_IP_ACCESS_LIST
+   */
+  readonly typesToActivate?: AtlasCfnType[];
 }
 
 /**
@@ -43,8 +61,27 @@ export class MongoDBAtlasBootstrap extends Construct {
     if (props?.secretProfile) {
       new MongoSecretProfile(this, 'MongoSecretProfile', this.secretProfile );
     }
-    for (let x of ['Cluster', 'Project', 'DatabaseUser', 'ProjectIpAccessList', 'NetworkContainer', 'NetworkPeering', 'ServerlessInstance'] ) {
-      new CfnOutput(this, `ActivateCmd${x}`, { value: `aws cloudformation activate-type --type-name MongoDB::Atlas::${x} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ${this.role.roleArn}` });
+    // activate the CFN extension types
+    this.activateCfnExtension(props?.typesToActivate);
+    // for (let x of ['Cluster', 'Project', 'DatabaseUser', 'ProjectIpAccessList', 'NetworkContainer', 'NetworkPeering', 'ServerlessInstance'] ) {
+    //   new CfnOutput(this, `ActivateCmd${x}`, { value: `aws cloudformation activate-type --type-name MongoDB::Atlas::${x} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ${this.role.roleArn}` });
+    // }
+  }
+  private activateCfnExtension(types?: AtlasCfnType[]) {
+    // if types undefined, we only activate basic types.
+    const _types = types ?? [
+      AtlasCfnType.CLUSTER,
+      AtlasCfnType.PROJECT,
+      AtlasCfnType.DATABASE_USER,
+      AtlasCfnType.PROJECT_IP_ACCESS_LIST,
+    ];
+    for (let type of _types) {
+      new cloudformation.CfnTypeActivation(this, `TypeActivation${type}`, {
+        executionRoleArn: this.role.roleArn,
+        type: 'RESOURCE',
+        typeName: `MongoDB::Atlas::${type}`,
+        publisherId: 'bb989456c78c398a858fef18f2ca1bfc1fbba082',
+      });
     }
   }
 }
