@@ -1,12 +1,22 @@
 # MongoDB Atlas Reference Architecture with AWS CDK
 
-This example walks you through building MongoDB Atlas cluster with AWS CDK.
+This example walks you through building a serverless application using MongoDB Atlas cluster and  serverless instance using AWS CDK.
 
-<img src=./images/peering-diagram-serverless.svg>
+<img src=./images/peering-diagram-serverless-api.svg>
 
 # How it works
 
-[AWS Cloudformation extensions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html) allows users to use cloudformation resource types by third-party publishers. With the availability of [CDK constructs provided by MongoDB Atlas](https://github.com/mongodb/mongodbatlas-cloudformation-resources), users are allowed to use AWS CDK to synthesize cloudformation resources with the public extensions provided by MongoDB Atlas and deploy all supported resources such as `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser` and `MongoDB::Atlas::Project`.
+[AWS Cloudformation extensions](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html) allows users to use cloudformation resource types by third-party publishers. With the availability of [CDK constructs provided by MongoDB Atlas](https://github.com/mongodb/awscdk-resources-mongodbatlas), users are allowed to use AWS CDK to synthesize cloudformation resources with the public extensions provided by MongoDB Atlas and deploy all supported resources such as `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser` and `MongoDB::Atlas::Project`.
+
+While you just focus on AWS CDK, the builder experience is like:
+
+```ts
+// build a replica-set cluster
+new AtlasCluster(scope, id, props);
+
+// build a serverless instance
+new ServerlessInstance(scope, id, props);
+```
 
 Before using the public extensions, you will need to configure the environment including:
 
@@ -18,7 +28,7 @@ This examples aims to provide a CDK-native experience to streamline your first M
 
 # Bootstrap your environment
 
-If it's your first time using AWS CDK to create MongoDB Atlas cluster, you will need to configure your environment as described above. This example comes with a `MongoDBAtlasBootstrap` construct that generates and configures everything for you as mentioned above including:
+If it's your first time using AWS CDK to create MongoDB Atlas cluster, you need to configure your environment as described above. This example comes with a `MongoDBAtlasBootstrap` construct that generates and configures everything for you as mentioned above including:
 
 1. Create a cloudformation extension IAM execution role and required permissions(see [doc](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/registry-public.html)).
 2. Create a custom profile secret to store public and private API keys(see [doc](https://github.com/mongodb/mongodbatlas-cloudformation-resources#1-configure-your-mongodb-atlas-api-keys)).
@@ -42,28 +52,9 @@ $ npx cdk diff mongo-cdk-bootstrap
 $ npx cdk deploy mongo-cdk-bootstrap
 ```
 
-Follow the commands in the `Outputs`, let's activate the relevant MongoDB Atlas cloudformation extensions. e.g.
+Update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
-
-```sh
-$ aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
-```
-(You will need to activate `MongoDB::Atlas::Cluster`, `MongoDB::Atlas::DatabaseUser`, `MongoDB::Atlas::Project`,  `MongoDB::Atlas::ProjectIpAccessList`, `MongoDB::Atlas::NetworkContainer`, `MongoDB::Atlas::ServerlessInstance`
-and `MongoDB::Atlas::NetworkPeering`)
-
-Alternatively, if you are comfortable using for loop in the shell:
-
-```sh
-$ for i in Cluster DatabaseUser Project ProjectIpAccessList NetworkContainer NetworkPeering ServerlessInstance
-> do
-> aws cloudformation activate-type --type-name MongoDB::Atlas::${i} --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn arn:aws:iam::123456789012:role/cfn-ext-exec-role-for-mongo
-> done
-```
-(replace `123456789012` with your AWS account ID)
-
-Last but not least, update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
-
-> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in the organization.
+> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in this demo.
 
 Update the key pair in the generated secret with AWS CLI:
 
@@ -78,7 +69,7 @@ Your are all set.
 
 # Demo
 
-Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance with the `AtlasCluster` construct. The following resources will be created when you deploy the Demo stack:
+Now, Let's deploy the `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance. The following resources will be created when you deploy the Demo stack:
 
 1. A new `Project`
 2. A new `DatabaseUser`
@@ -87,69 +78,61 @@ Now, Let's deploy `mongodb-demo-stack` that creates a replicaSet cluster and a s
 5. A new `NetworkContainer`
 6. A new `NetworkPeering`
 7. A custom resource `Custom::VpcPeeringHandler` that will automatically accept the VPC peering request from MongoDB Atlas.
-8. A new secret for the connection string
+8. A new secret to store the connection string
 9. A demo Lambda Function
 10. An API Gateway REST API
 
 On creation complete, the VPC peering will be established without any manual approval.
 
-```ts
-const demoStack = new Stack(app, 'mongodb-demo-stack', { env });
-
-const vpc = getVpc(demoStack);
-const orgId = process.env.MONGODB_ATLAS_ORG_ID || 'mock_id';
-
-// create a ReplicaSet cluster
-const cluster = new AtlasCluster(demoStack, 'Cluster', {
-  clusterName: 'my-cluster',
-  orgId,
-  profile: secretProfile,
-  replication,
-  accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
-  peering: { vpc, cidr: '192.168.248.0/21' },
-  clusterType: ClusterType.REPLICASET,
-});
-
-// create a serverless instance
-new ServerlessInstance(demoStack, 'ServerlessInstance', {
-  instanceName: 'my-serverless-instance',
-  profile: secretProfile,
-  project: cluster.project,
-  continuousBackup: true,
-});
-```
-
 Read [src/integ.default.ts](./src/integ.default.ts) for the full sample including the Lambda function and API Gateway REST API.
 
-The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing any supported context variables.
+The `getVpc()` method essentially reutrn the existing VPC or create a new one based on the context variable received. Use `use_default_vpc=1` for your default VPC, `use_vpc_id=vpc-xxxxx` for a specific VPC or create a new VPC without passing both context variables.
 
-Deploy everthing mentioned above:
+Deploy it now:
 
 ```sh
 $ export MONGODB_ATLAS_ORG_ID='your_org_id'
+$ npx cdk diff mongodb-demo-stack -c use_default_vpc=1
 $ npx cdk deploy mongodb-demo-stack -c use_default_vpc=1
 ```
 
 On deployment completed, check out the cluster and serverless instance in your MongoDB Atlas console:
 
-<img src=./images/cluster.png>
+<img src=./images/cluster-serverless-instance.png>
 
-As this cluster is now VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC through VPC peering. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+And you should see the CDK Outputs like this:
 
-The cluster connection string can be found in the outputs:
+```
+mongodb-demo-stack.ClusterVpcPeeringConnectionId734C7A5C = pcx-0e826d4b5b3c4f0b0
+mongodb-demo-stack.ClusterconnectionStrings17813228 = mongodb+srv://my-cluster.yti1n.mongodb.net
+mongodb-demo-stack.ConnectionStringSecretName = cfn/atlas/connectionString/default
+mongodb-demo-stack.RestAPIEndpointB14C3C54 = https://nin9xjrzn0.execute-api.us-east-1.amazonaws.com/prod/
+mongodb-demo-stack.ServerlessInstanceConnectionStringB32B56D6 = mongodb+srv://my-serverless-instance.bahxo51.mongodb.net
+```
+
+# AtlasCluster
+
+Before we talk about the cluster. Let's first discuss how MongoDB Atlas interconnect with your VPC.
+
+At this moment, MongoDB Atlas supports `VPC Peering` and `VPC private endpoint`.
+
+**VPC Peering**: Allow your VPC traffic route to MongoDB Atlas VPC. **You need to update your routing tables** to add an additional route to Atlas CIDR block.
+
+**VPC Private Endpoint**: It essentially create a private endpoint interface in your VPC private subnet, the DNS name of the connection string will be resolved to the private IP of the endpoint interface that forward the connection to the NLB in MongoDB Atlas environment. You don't need to update your routing tables.
+
+
+As this cluster is VPC peering enabled, you will need to add the Atlas CIDR into your VPC routing tables and enable the `DNS hostnames` and `DNS resolution` for your VPC. This is required to connect the cluster from your VPC through VPC peering. Read [Configure an Atlas Network Peering Connection](https://www.mongodb.com/docs/atlas/security-vpc-peering/#configure-an-service-network-peering-connection) for more details.
+
+Find the connection string for the cluster in CDK outputs or in the MongoDB Atlas console.
 
 ```
 Outputs:
-mongodb-demo-stack.mongodbdemoVpcPeeringConnectionId81345C3A = pcx-0780121d0755b997c
 mongodb-demo-stack.mongodbdemoconnectionStrings6DEDB530 = mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net
 ```
 
 # Connect your cluster from your VPC
 
-Re-generate the password for the default database user `atlas-user ` and get the connection URI from the console or simply use the one
-from the Outputs.
-
-For example, connect to the cluster from an Amazon Linux instance using `mongosh`:
+Connect to the cluster from an Amazon Linux instance using `mongosh`:
 
 ```sh
 $ mongosh "mongodb+srv://atlas-cluster-clustermo.4pa5m.mongodb.net/" --apiVersion 1 --username atlas-user
@@ -171,10 +154,33 @@ config  204.00 KiB
 local   492.00 KiB
 Atlas atlas-3h7l0v-shard-0 [primary] test>
 ```
+(You can generate your password in the console)
+
+
+# ServerlessInstance
+
+MongoDB Atlas `ServerlessInstance` is designed for serverless applications with variable or infrequent traffic.
+
+To create a ServerlessInstance:
+
+```ts
+// create a serverless instance
+new ServerlessInstance(demoStack, 'ServerlessInstance', {
+  orgId,
+  instanceName: 'my-serverless-instance',
+  profile: secretProfile,
+  continuousBackup: true,
+});
+```
+
+check [src/integ.default.ts](./src/integ.default.ts) for more details.
+
+As `ServerlessInstance` does not support VPC peering and the VPC private endpoint is not provided as CDK L1 construct by MongoDB Atlas at this moment, for now we will just tentatively connect the ServerlessInstance from Lambda function through the public internet. After the VPC private endpoint construct is available, we will update this sample using private endpoint instead.
+
 
 # RESTful API with API Gateway, Lambda and MongoDB Atlas ServerlessInstance
 
-Go to MongoDB Atlas console and find the connection string for pymongo.
+Go to MongoDB Atlas console and find the connection string for Python driver.
 
 For example:
 
@@ -183,7 +189,7 @@ mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?
 ```
 (make sure to replace <password> with your password)
 
-Update the secret
+Update the secret with full connection string. This secret will be retrived when Lambda function is invoked.
 
 ```sh
 $ aws secretsmanager update-secret --secret-id cfn/atlas/connectionString/default --secret-string "mongodb+srv://atlas-user:<password>@my-serverless-instance.2er0eio.mongodb.net/?retryWrites=true&w=majority"
@@ -194,23 +200,23 @@ OK. Let's open the REST API endpoint from the CDK output:
 ```sh
 $ curl -s https://5momhqf3h2.execute-api.us-east-1.amazonaws.com/prod/ | jq .
 {
-  "sales_2023": 256,
+  "sales_2023": 33,
   "results": [
     {
-      "_id": "jkl",
-      "totalSaleAmount": 8863
+      "_id": "def",
+      "totalSaleAmount": 1669
     },
     {
       "_id": "abc",
-      "totalSaleAmount": 14874
+      "totalSaleAmount": 2646
+    },
+    {
+      "_id": "jkl",
+      "totalSaleAmount": 1490
     },
     {
       "_id": "xyz",
-      "totalSaleAmount": 10800
-    },
-    {
-      "_id": "def",
-      "totalSaleAmount": 11877
+      "totalSaleAmount": 1247
     }
   ]
 }
@@ -252,8 +258,6 @@ $ dig atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net.
 atlas-cluster-clustermo-shard-00-00.4pa5m.mongodb.net. 60 IN CNAME ec2-34-227-203-248.compute-1.amazonaws.com.
 ec2-34-227-203-248.compute-1.amazonaws.com. 20 IN A 192.168.254.210
 ```
-
-Now, your MongoDB client in your VPC should be able to access the provisioned cluster through a secure peering network without routing to the public internet.
 
 # clean up
 
@@ -353,6 +357,8 @@ new AtlasCluster(scope: Construct, id: string, props: AtlasClusterProps)
 | **Name** | **Description** |
 | --- | --- |
 | <code><a href="#mongodb-atlas.AtlasCluster.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#mongodb-atlas.AtlasCluster.addPrivateEndpoint">addPrivateEndpoint</a></code> | Add a private endpoint for this cluster. |
+| <code><a href="#mongodb-atlas.AtlasCluster.addVpcPeering">addVpcPeering</a></code> | Add a VPC peering for this cluster. |
 
 ---
 
@@ -363,6 +369,34 @@ public toString(): string
 ```
 
 Returns a string representation of this construct.
+
+##### `addPrivateEndpoint` <a name="addPrivateEndpoint" id="mongodb-atlas.AtlasCluster.addPrivateEndpoint"></a>
+
+```typescript
+public addPrivateEndpoint(options: PrivateEndpointVpcOptions): PrivateEndpoint
+```
+
+Add a private endpoint for this cluster.
+
+###### `options`<sup>Required</sup> <a name="options" id="mongodb-atlas.AtlasCluster.addPrivateEndpoint.parameter.options"></a>
+
+- *Type:* <a href="#mongodb-atlas.PrivateEndpointVpcOptions">PrivateEndpointVpcOptions</a>
+
+---
+
+##### `addVpcPeering` <a name="addVpcPeering" id="mongodb-atlas.AtlasCluster.addVpcPeering"></a>
+
+```typescript
+public addVpcPeering(options: VpcPeeringOptions): void
+```
+
+Add a VPC peering for this cluster.
+
+###### `options`<sup>Required</sup> <a name="options" id="mongodb-atlas.AtlasCluster.addVpcPeering.parameter.options"></a>
+
+- *Type:* <a href="#mongodb-atlas.VpcPeeringOptions">VpcPeeringOptions</a>
+
+---
 
 #### Static Functions <a name="Static Functions" id="Static Functions"></a>
 
@@ -955,6 +989,7 @@ DatabaseUser.fromDatabaseUserAttributes(scope: Construct, id: string, attrs: Dat
 | <code><a href="#mongodb-atlas.DatabaseUser.property.env">env</a></code> | <code>aws-cdk-lib.ResourceEnvironment</code> | The environment this resource belongs to. |
 | <code><a href="#mongodb-atlas.DatabaseUser.property.stack">stack</a></code> | <code>aws-cdk-lib.Stack</code> | The stack in which this resource is defined. |
 | <code><a href="#mongodb-atlas.DatabaseUser.property.dabataseUserName">dabataseUserName</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.DatabaseUser.property.secret">secret</a></code> | <code>aws-cdk-lib.aws_secretsmanager.Secret</code> | *No description.* |
 | <code><a href="#mongodb-atlas.DatabaseUser.property.userCFNIdentifier">userCFNIdentifier</a></code> | <code>string</code> | *No description.* |
 
 ---
@@ -1009,6 +1044,16 @@ public readonly dabataseUserName: string;
 ```
 
 - *Type:* string
+
+---
+
+##### `secret`<sup>Required</sup> <a name="secret" id="mongodb-atlas.DatabaseUser.property.secret"></a>
+
+```typescript
+public readonly secret: Secret;
+```
+
+- *Type:* aws-cdk-lib.aws_secretsmanager.Secret
 
 ---
 
@@ -1461,6 +1506,246 @@ public readonly node: Node;
 - *Type:* constructs.Node
 
 The tree node.
+
+---
+
+
+### PrivateEndpoint <a name="PrivateEndpoint" id="mongodb-atlas.PrivateEndpoint"></a>
+
+- *Implements:* <a href="#mongodb-atlas.IPrivateEndpoint">IPrivateEndpoint</a>
+
+#### Initializers <a name="Initializers" id="mongodb-atlas.PrivateEndpoint.Initializer"></a>
+
+```typescript
+import { PrivateEndpoint } from 'mongodb-atlas'
+
+new PrivateEndpoint(scope: Construct, id: string, props: PrivateEndpointProps)
+```
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.Initializer.parameter.scope">scope</a></code> | <code>constructs.Construct</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.Initializer.parameter.id">id</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.Initializer.parameter.props">props</a></code> | <code><a href="#mongodb-atlas.PrivateEndpointProps">PrivateEndpointProps</a></code> | *No description.* |
+
+---
+
+##### `scope`<sup>Required</sup> <a name="scope" id="mongodb-atlas.PrivateEndpoint.Initializer.parameter.scope"></a>
+
+- *Type:* constructs.Construct
+
+---
+
+##### `id`<sup>Required</sup> <a name="id" id="mongodb-atlas.PrivateEndpoint.Initializer.parameter.id"></a>
+
+- *Type:* string
+
+---
+
+##### `props`<sup>Required</sup> <a name="props" id="mongodb-atlas.PrivateEndpoint.Initializer.parameter.props"></a>
+
+- *Type:* <a href="#mongodb-atlas.PrivateEndpointProps">PrivateEndpointProps</a>
+
+---
+
+#### Methods <a name="Methods" id="Methods"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.toString">toString</a></code> | Returns a string representation of this construct. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.applyRemovalPolicy">applyRemovalPolicy</a></code> | Apply the given removal policy to this resource. |
+
+---
+
+##### `toString` <a name="toString" id="mongodb-atlas.PrivateEndpoint.toString"></a>
+
+```typescript
+public toString(): string
+```
+
+Returns a string representation of this construct.
+
+##### `applyRemovalPolicy` <a name="applyRemovalPolicy" id="mongodb-atlas.PrivateEndpoint.applyRemovalPolicy"></a>
+
+```typescript
+public applyRemovalPolicy(policy: RemovalPolicy): void
+```
+
+Apply the given removal policy to this resource.
+
+The Removal Policy controls what happens to this resource when it stops
+being managed by CloudFormation, either because you've removed it from the
+CDK application or because you've made a change that requires the resource
+to be replaced.
+
+The resource can be deleted (`RemovalPolicy.DESTROY`), or left in your AWS
+account for data recovery and cleanup later (`RemovalPolicy.RETAIN`).
+
+###### `policy`<sup>Required</sup> <a name="policy" id="mongodb-atlas.PrivateEndpoint.applyRemovalPolicy.parameter.policy"></a>
+
+- *Type:* aws-cdk-lib.RemovalPolicy
+
+---
+
+#### Static Functions <a name="Static Functions" id="Static Functions"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.isConstruct">isConstruct</a></code> | Checks if `x` is a construct. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.isOwnedResource">isOwnedResource</a></code> | Returns true if the construct was created by CDK, and false otherwise. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.isResource">isResource</a></code> | Check whether the given construct is a Resource. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.fromPrivateEndpointAttributes">fromPrivateEndpointAttributes</a></code> | *No description.* |
+
+---
+
+##### ~~`isConstruct`~~ <a name="isConstruct" id="mongodb-atlas.PrivateEndpoint.isConstruct"></a>
+
+```typescript
+import { PrivateEndpoint } from 'mongodb-atlas'
+
+PrivateEndpoint.isConstruct(x: any)
+```
+
+Checks if `x` is a construct.
+
+###### `x`<sup>Required</sup> <a name="x" id="mongodb-atlas.PrivateEndpoint.isConstruct.parameter.x"></a>
+
+- *Type:* any
+
+Any object.
+
+---
+
+##### `isOwnedResource` <a name="isOwnedResource" id="mongodb-atlas.PrivateEndpoint.isOwnedResource"></a>
+
+```typescript
+import { PrivateEndpoint } from 'mongodb-atlas'
+
+PrivateEndpoint.isOwnedResource(construct: IConstruct)
+```
+
+Returns true if the construct was created by CDK, and false otherwise.
+
+###### `construct`<sup>Required</sup> <a name="construct" id="mongodb-atlas.PrivateEndpoint.isOwnedResource.parameter.construct"></a>
+
+- *Type:* constructs.IConstruct
+
+---
+
+##### `isResource` <a name="isResource" id="mongodb-atlas.PrivateEndpoint.isResource"></a>
+
+```typescript
+import { PrivateEndpoint } from 'mongodb-atlas'
+
+PrivateEndpoint.isResource(construct: IConstruct)
+```
+
+Check whether the given construct is a Resource.
+
+###### `construct`<sup>Required</sup> <a name="construct" id="mongodb-atlas.PrivateEndpoint.isResource.parameter.construct"></a>
+
+- *Type:* constructs.IConstruct
+
+---
+
+##### `fromPrivateEndpointAttributes` <a name="fromPrivateEndpointAttributes" id="mongodb-atlas.PrivateEndpoint.fromPrivateEndpointAttributes"></a>
+
+```typescript
+import { PrivateEndpoint } from 'mongodb-atlas'
+
+PrivateEndpoint.fromPrivateEndpointAttributes(scope: Construct, id: string, attrs: PrivateEndpointAttributes)
+```
+
+###### `scope`<sup>Required</sup> <a name="scope" id="mongodb-atlas.PrivateEndpoint.fromPrivateEndpointAttributes.parameter.scope"></a>
+
+- *Type:* constructs.Construct
+
+---
+
+###### `id`<sup>Required</sup> <a name="id" id="mongodb-atlas.PrivateEndpoint.fromPrivateEndpointAttributes.parameter.id"></a>
+
+- *Type:* string
+
+---
+
+###### `attrs`<sup>Required</sup> <a name="attrs" id="mongodb-atlas.PrivateEndpoint.fromPrivateEndpointAttributes.parameter.attrs"></a>
+
+- *Type:* <a href="#mongodb-atlas.PrivateEndpointAttributes">PrivateEndpointAttributes</a>
+
+---
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.property.node">node</a></code> | <code>constructs.Node</code> | The tree node. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.property.env">env</a></code> | <code>aws-cdk-lib.ResourceEnvironment</code> | The environment this resource belongs to. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.property.stack">stack</a></code> | <code>aws-cdk-lib.Stack</code> | The stack in which this resource is defined. |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.property.privateEndpointId">privateEndpointId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpoint.property.privateEndpointName">privateEndpointName</a></code> | <code>string</code> | *No description.* |
+
+---
+
+##### `node`<sup>Required</sup> <a name="node" id="mongodb-atlas.PrivateEndpoint.property.node"></a>
+
+```typescript
+public readonly node: Node;
+```
+
+- *Type:* constructs.Node
+
+The tree node.
+
+---
+
+##### `env`<sup>Required</sup> <a name="env" id="mongodb-atlas.PrivateEndpoint.property.env"></a>
+
+```typescript
+public readonly env: ResourceEnvironment;
+```
+
+- *Type:* aws-cdk-lib.ResourceEnvironment
+
+The environment this resource belongs to.
+
+For resources that are created and managed by the CDK
+(generally, those created by creating new class instances like Role, Bucket, etc.),
+this is always the same as the environment of the stack they belong to;
+however, for imported resources
+(those obtained from static methods like fromRoleArn, fromBucketName, etc.),
+that might be different than the stack they were imported into.
+
+---
+
+##### `stack`<sup>Required</sup> <a name="stack" id="mongodb-atlas.PrivateEndpoint.property.stack"></a>
+
+```typescript
+public readonly stack: Stack;
+```
+
+- *Type:* aws-cdk-lib.Stack
+
+The stack in which this resource is defined.
+
+---
+
+##### `privateEndpointId`<sup>Required</sup> <a name="privateEndpointId" id="mongodb-atlas.PrivateEndpoint.property.privateEndpointId"></a>
+
+```typescript
+public readonly privateEndpointId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `privateEndpointName`<sup>Required</sup> <a name="privateEndpointName" id="mongodb-atlas.PrivateEndpoint.property.privateEndpointName"></a>
+
+```typescript
+public readonly privateEndpointName: string;
+```
+
+- *Type:* string
 
 ---
 
@@ -2127,9 +2412,8 @@ const atlasClusterProps: AtlasClusterProps = { ... }
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.replication">replication</a></code> | <code><a href="#mongodb-atlas.ReplicationSpecs">ReplicationSpecs</a>[]</code> | The specs for replication. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.clusterName">clusterName</a></code> | <code>string</code> | Name of the cluster. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.clusterType">clusterType</a></code> | <code><a href="#mongodb-atlas.ClusterType">ClusterType</a></code> | Type of the cluster. |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.peering">peering</a></code> | <code><a href="#mongodb-atlas.PeeringProps">PeeringProps</a></code> | VPC peering options with AWS. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | The project for this cluster. |
-| <code><a href="#mongodb-atlas.AtlasClusterProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AwsRegion">AwsRegion</a></code> | Region for the network container. |
+| <code><a href="#mongodb-atlas.AtlasClusterProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AtlasRegion">AtlasRegion</a></code> | MongoDB Atlas region. |
 | <code><a href="#mongodb-atlas.AtlasClusterProps.property.user">user</a></code> | <code><a href="#mongodb-atlas.IDatabaseUser">IDatabaseUser</a></code> | DatabaseUser for this cluster. |
 
 ---
@@ -2212,24 +2496,6 @@ Type of the cluster.
 
 ---
 
-##### `peering`<sup>Optional</sup> <a name="peering" id="mongodb-atlas.AtlasClusterProps.property.peering"></a>
-
-```typescript
-public readonly peering: PeeringProps;
-```
-
-- *Type:* <a href="#mongodb-atlas.PeeringProps">PeeringProps</a>
-- *Default:* no vpc peering.
-
-VPC peering options with AWS.
-
-If you enable this option, the network container and network peering with AWS VPC
-will be provisioned and the VPC peering request will be auto accepted.
-
-> [https://www.mongodb.com/docs/atlas/security-vpc-peering/](https://www.mongodb.com/docs/atlas/security-vpc-peering/)
-
----
-
 ##### `project`<sup>Optional</sup> <a name="project" id="mongodb-atlas.AtlasClusterProps.property.project"></a>
 
 ```typescript
@@ -2247,13 +2513,13 @@ The project for this cluster.
 ##### `region`<sup>Optional</sup> <a name="region" id="mongodb-atlas.AtlasClusterProps.property.region"></a>
 
 ```typescript
-public readonly region: AwsRegion;
+public readonly region: AtlasRegion;
 ```
 
-- *Type:* <a href="#mongodb-atlas.AwsRegion">AwsRegion</a>
-- *Default:* US_EAST_1
+- *Type:* <a href="#mongodb-atlas.AtlasRegion">AtlasRegion</a>
+- *Default:* AtlasRegion.US_EAST_1
 
-Region for the network container.
+MongoDB Atlas region.
 
 ---
 
@@ -3082,6 +3348,7 @@ public readonly password: string;
 ```
 
 - *Type:* string
+- *Default:* auto-generated
 
 The user’s password.
 
@@ -3338,6 +3605,7 @@ public readonly password: string;
 ```
 
 - *Type:* string
+- *Default:* auto-generated
 
 The user’s password.
 
@@ -3675,38 +3943,69 @@ public readonly project: IProject;
 
 ---
 
-### PeeringProps <a name="PeeringProps" id="mongodb-atlas.PeeringProps"></a>
+### PrivateEndpointAttributes <a name="PrivateEndpointAttributes" id="mongodb-atlas.PrivateEndpointAttributes"></a>
 
-#### Initializer <a name="Initializer" id="mongodb-atlas.PeeringProps.Initializer"></a>
+#### Initializer <a name="Initializer" id="mongodb-atlas.PrivateEndpointAttributes.Initializer"></a>
 
 ```typescript
-import { PeeringProps } from 'mongodb-atlas'
+import { PrivateEndpointAttributes } from 'mongodb-atlas'
 
-const peeringProps: PeeringProps = { ... }
+const privateEndpointAttributes: PrivateEndpointAttributes = { ... }
 ```
 
 #### Properties <a name="Properties" id="Properties"></a>
 
 | **Name** | **Type** | **Description** |
 | --- | --- | --- |
-| <code><a href="#mongodb-atlas.PeeringProps.property.cidr">cidr</a></code> | <code>string</code> | *No description.* |
-| <code><a href="#mongodb-atlas.PeeringProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
-| <code><a href="#mongodb-atlas.PeeringProps.property.acceptRegionName">acceptRegionName</a></code> | <code>string</code> | The AWS region name to accept the peering. |
-| <code><a href="#mongodb-atlas.PeeringProps.property.accountId">accountId</a></code> | <code>string</code> | The AWS account ID. |
+| <code><a href="#mongodb-atlas.PrivateEndpointAttributes.property.privateEndpointId">privateEndpointId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointAttributes.property.privateEndpointName">privateEndpointName</a></code> | <code>string</code> | *No description.* |
 
 ---
 
-##### `cidr`<sup>Required</sup> <a name="cidr" id="mongodb-atlas.PeeringProps.property.cidr"></a>
+##### `privateEndpointId`<sup>Required</sup> <a name="privateEndpointId" id="mongodb-atlas.PrivateEndpointAttributes.property.privateEndpointId"></a>
 
 ```typescript
-public readonly cidr: string;
+public readonly privateEndpointId: string;
 ```
 
 - *Type:* string
 
 ---
 
-##### `vpc`<sup>Required</sup> <a name="vpc" id="mongodb-atlas.PeeringProps.property.vpc"></a>
+##### `privateEndpointName`<sup>Required</sup> <a name="privateEndpointName" id="mongodb-atlas.PrivateEndpointAttributes.property.privateEndpointName"></a>
+
+```typescript
+public readonly privateEndpointName: string;
+```
+
+- *Type:* string
+
+---
+
+### PrivateEndpointProps <a name="PrivateEndpointProps" id="mongodb-atlas.PrivateEndpointProps"></a>
+
+#### Initializer <a name="Initializer" id="mongodb-atlas.PrivateEndpointProps.Initializer"></a>
+
+```typescript
+import { PrivateEndpointProps } from 'mongodb-atlas'
+
+const privateEndpointProps: PrivateEndpointProps = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.vpcSubnets">vpcSubnets</a></code> | <code>aws-cdk-lib.aws_ec2.SubnetSelection[]</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.profile">profile</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.project">project</a></code> | <code><a href="#mongodb-atlas.IProject">IProject</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.region">region</a></code> | <code><a href="#mongodb-atlas.AtlasRegion">AtlasRegion</a></code> | The Atlas region for AWS. |
+| <code><a href="#mongodb-atlas.PrivateEndpointProps.property.serviceName">serviceName</a></code> | <code>string</code> | *No description.* |
+
+---
+
+##### `vpc`<sup>Required</sup> <a name="vpc" id="mongodb-atlas.PrivateEndpointProps.property.vpc"></a>
 
 ```typescript
 public readonly vpc: IVpc;
@@ -3716,29 +4015,97 @@ public readonly vpc: IVpc;
 
 ---
 
-##### `acceptRegionName`<sup>Optional</sup> <a name="acceptRegionName" id="mongodb-atlas.PeeringProps.property.acceptRegionName"></a>
+##### `vpcSubnets`<sup>Required</sup> <a name="vpcSubnets" id="mongodb-atlas.PrivateEndpointProps.property.vpcSubnets"></a>
 
 ```typescript
-public readonly acceptRegionName: string;
+public readonly vpcSubnets: SubnetSelection[];
 ```
 
-- *Type:* string
-- *Default:* current region name.
-
-The AWS region name to accept the peering.
+- *Type:* aws-cdk-lib.aws_ec2.SubnetSelection[]
 
 ---
 
-##### `accountId`<sup>Optional</sup> <a name="accountId" id="mongodb-atlas.PeeringProps.property.accountId"></a>
+##### `profile`<sup>Required</sup> <a name="profile" id="mongodb-atlas.PrivateEndpointProps.property.profile"></a>
 
 ```typescript
-public readonly accountId: string;
+public readonly profile: string;
 ```
 
 - *Type:* string
-- *Default:* current account ID.
 
-The AWS account ID.
+---
+
+##### `project`<sup>Required</sup> <a name="project" id="mongodb-atlas.PrivateEndpointProps.property.project"></a>
+
+```typescript
+public readonly project: IProject;
+```
+
+- *Type:* <a href="#mongodb-atlas.IProject">IProject</a>
+
+---
+
+##### `region`<sup>Optional</sup> <a name="region" id="mongodb-atlas.PrivateEndpointProps.property.region"></a>
+
+```typescript
+public readonly region: AtlasRegion;
+```
+
+- *Type:* <a href="#mongodb-atlas.AtlasRegion">AtlasRegion</a>
+- *Default:* AtlasRegion.US_EAST_1
+
+The Atlas region for AWS.
+
+---
+
+##### `serviceName`<sup>Optional</sup> <a name="serviceName" id="mongodb-atlas.PrivateEndpointProps.property.serviceName"></a>
+
+```typescript
+public readonly serviceName: string;
+```
+
+- *Type:* string
+
+---
+
+### PrivateEndpointVpcOptions <a name="PrivateEndpointVpcOptions" id="mongodb-atlas.PrivateEndpointVpcOptions"></a>
+
+Options to create a private endpoint.
+
+#### Initializer <a name="Initializer" id="mongodb-atlas.PrivateEndpointVpcOptions.Initializer"></a>
+
+```typescript
+import { PrivateEndpointVpcOptions } from 'mongodb-atlas'
+
+const privateEndpointVpcOptions: PrivateEndpointVpcOptions = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.PrivateEndpointVpcOptions.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | *No description.* |
+| <code><a href="#mongodb-atlas.PrivateEndpointVpcOptions.property.vpcSubnets">vpcSubnets</a></code> | <code>aws-cdk-lib.aws_ec2.SubnetSelection[]</code> | *No description.* |
+
+---
+
+##### `vpc`<sup>Required</sup> <a name="vpc" id="mongodb-atlas.PrivateEndpointVpcOptions.property.vpc"></a>
+
+```typescript
+public readonly vpc: IVpc;
+```
+
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
+
+---
+
+##### `vpcSubnets`<sup>Required</sup> <a name="vpcSubnets" id="mongodb-atlas.PrivateEndpointVpcOptions.property.vpcSubnets"></a>
+
+```typescript
+public readonly vpcSubnets: SubnetSelection[];
+```
+
+- *Type:* aws-cdk-lib.aws_ec2.SubnetSelection[]
 
 ---
 
@@ -4491,6 +4858,77 @@ public readonly nodeCount: number;
 
 ---
 
+### VpcPeeringOptions <a name="VpcPeeringOptions" id="mongodb-atlas.VpcPeeringOptions"></a>
+
+#### Initializer <a name="Initializer" id="mongodb-atlas.VpcPeeringOptions.Initializer"></a>
+
+```typescript
+import { VpcPeeringOptions } from 'mongodb-atlas'
+
+const vpcPeeringOptions: VpcPeeringOptions = { ... }
+```
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.VpcPeeringOptions.property.cidr">cidr</a></code> | <code>string</code> | The Atlas CIDR block for the network container. |
+| <code><a href="#mongodb-atlas.VpcPeeringOptions.property.vpc">vpc</a></code> | <code>aws-cdk-lib.aws_ec2.IVpc</code> | The AWS VPC to peer with. |
+| <code><a href="#mongodb-atlas.VpcPeeringOptions.property.acceptRegionName">acceptRegionName</a></code> | <code>string</code> | The AWS region name to accept the peering. |
+| <code><a href="#mongodb-atlas.VpcPeeringOptions.property.accountId">accountId</a></code> | <code>string</code> | The AWS account ID. |
+
+---
+
+##### `cidr`<sup>Required</sup> <a name="cidr" id="mongodb-atlas.VpcPeeringOptions.property.cidr"></a>
+
+```typescript
+public readonly cidr: string;
+```
+
+- *Type:* string
+
+The Atlas CIDR block for the network container.
+
+---
+
+##### `vpc`<sup>Required</sup> <a name="vpc" id="mongodb-atlas.VpcPeeringOptions.property.vpc"></a>
+
+```typescript
+public readonly vpc: IVpc;
+```
+
+- *Type:* aws-cdk-lib.aws_ec2.IVpc
+
+The AWS VPC to peer with.
+
+---
+
+##### `acceptRegionName`<sup>Optional</sup> <a name="acceptRegionName" id="mongodb-atlas.VpcPeeringOptions.property.acceptRegionName"></a>
+
+```typescript
+public readonly acceptRegionName: string;
+```
+
+- *Type:* string
+- *Default:* current region name.
+
+The AWS region name to accept the peering.
+
+---
+
+##### `accountId`<sup>Optional</sup> <a name="accountId" id="mongodb-atlas.VpcPeeringOptions.property.accountId"></a>
+
+```typescript
+public readonly accountId: string;
+```
+
+- *Type:* string
+- *Default:* current account ID.
+
+The AWS account ID.
+
+---
+
 ## Classes <a name="Classes" id="Classes"></a>
 
 ### MongoDBAtlasBootstrapProps <a name="MongoDBAtlasBootstrapProps" id="mongodb-atlas.MongoDBAtlasBootstrapProps"></a>
@@ -4516,6 +4954,7 @@ new MongoDBAtlasBootstrapProps()
 | --- | --- | --- |
 | <code><a href="#mongodb-atlas.MongoDBAtlasBootstrapProps.property.roleName">roleName</a></code> | <code>string</code> | The IAM role name for CloudFormation Extension Execution. |
 | <code><a href="#mongodb-atlas.MongoDBAtlasBootstrapProps.property.secretProfile">secretProfile</a></code> | <code>string</code> | The secret profile name for MongoDB Atlas. |
+| <code><a href="#mongodb-atlas.MongoDBAtlasBootstrapProps.property.typesToActivate">typesToActivate</a></code> | <code><a href="#mongodb-atlas.AtlasCfnType">AtlasCfnType</a>[]</code> | CloudFormation extension types to activate. |
 
 ---
 
@@ -4546,6 +4985,19 @@ public readonly secretProfile: string;
 The secret profile name for MongoDB Atlas.
 
 > [https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master#2-configure-your-profile](https://github.com/mongodb/mongodbatlas-cloudformation-resources/tree/master#2-configure-your-profile)
+
+---
+
+##### `typesToActivate`<sup>Optional</sup> <a name="typesToActivate" id="mongodb-atlas.MongoDBAtlasBootstrapProps.property.typesToActivate"></a>
+
+```typescript
+public readonly typesToActivate: AtlasCfnType[];
+```
+
+- *Type:* <a href="#mongodb-atlas.AtlasCfnType">AtlasCfnType</a>[]
+- *Default:* CLUSTER, PROJECT, DATABASE_USER, PROJECT_IP_ACCESS_LIST
+
+CloudFormation extension types to activate.
 
 ---
 
@@ -4713,6 +5165,40 @@ The stack in which this resource is defined.
 
 ---
 
+### IPrivateEndpoint <a name="IPrivateEndpoint" id="mongodb-atlas.IPrivateEndpoint"></a>
+
+- *Implemented By:* <a href="#mongodb-atlas.PrivateEndpoint">PrivateEndpoint</a>, <a href="#mongodb-atlas.IPrivateEndpoint">IPrivateEndpoint</a>
+
+
+#### Properties <a name="Properties" id="Properties"></a>
+
+| **Name** | **Type** | **Description** |
+| --- | --- | --- |
+| <code><a href="#mongodb-atlas.IPrivateEndpoint.property.privateEndpointId">privateEndpointId</a></code> | <code>string</code> | *No description.* |
+| <code><a href="#mongodb-atlas.IPrivateEndpoint.property.privateEndpointName">privateEndpointName</a></code> | <code>string</code> | *No description.* |
+
+---
+
+##### `privateEndpointId`<sup>Required</sup> <a name="privateEndpointId" id="mongodb-atlas.IPrivateEndpoint.property.privateEndpointId"></a>
+
+```typescript
+public readonly privateEndpointId: string;
+```
+
+- *Type:* string
+
+---
+
+##### `privateEndpointName`<sup>Required</sup> <a name="privateEndpointName" id="mongodb-atlas.IPrivateEndpoint.property.privateEndpointName"></a>
+
+```typescript
+public readonly privateEndpointName: string;
+```
+
+- *Type:* string
+
+---
+
 ### IProject <a name="IProject" id="mongodb-atlas.IProject"></a>
 
 - *Implemented By:* <a href="#mongodb-atlas.Project">Project</a>, <a href="#mongodb-atlas.IProject">IProject</a>
@@ -4859,6 +5345,106 @@ public readonly totalCount: number;
 ---
 
 ## Enums <a name="Enums" id="Enums"></a>
+
+### AtlasCfnType <a name="AtlasCfnType" id="mongodb-atlas.AtlasCfnType"></a>
+
+#### Members <a name="Members" id="Members"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.AtlasCfnType.CLUSTER">CLUSTER</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.PROJECT">PROJECT</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.DATABASE_USER">DATABASE_USER</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.PROJECT_IP_ACCESS_LIST">PROJECT_IP_ACCESS_LIST</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.NETWORK_CONTAINER">NETWORK_CONTAINER</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.NETWORK_PEERING">NETWORK_PEERING</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasCfnType.SERVERLESS_INSTANCE">SERVERLESS_INSTANCE</a></code> | *No description.* |
+
+---
+
+##### `CLUSTER` <a name="CLUSTER" id="mongodb-atlas.AtlasCfnType.CLUSTER"></a>
+
+---
+
+
+##### `PROJECT` <a name="PROJECT" id="mongodb-atlas.AtlasCfnType.PROJECT"></a>
+
+---
+
+
+##### `DATABASE_USER` <a name="DATABASE_USER" id="mongodb-atlas.AtlasCfnType.DATABASE_USER"></a>
+
+---
+
+
+##### `PROJECT_IP_ACCESS_LIST` <a name="PROJECT_IP_ACCESS_LIST" id="mongodb-atlas.AtlasCfnType.PROJECT_IP_ACCESS_LIST"></a>
+
+---
+
+
+##### `NETWORK_CONTAINER` <a name="NETWORK_CONTAINER" id="mongodb-atlas.AtlasCfnType.NETWORK_CONTAINER"></a>
+
+---
+
+
+##### `NETWORK_PEERING` <a name="NETWORK_PEERING" id="mongodb-atlas.AtlasCfnType.NETWORK_PEERING"></a>
+
+---
+
+
+##### `SERVERLESS_INSTANCE` <a name="SERVERLESS_INSTANCE" id="mongodb-atlas.AtlasCfnType.SERVERLESS_INSTANCE"></a>
+
+---
+
+
+### AtlasRegion <a name="AtlasRegion" id="mongodb-atlas.AtlasRegion"></a>
+
+Atlas region codes for AWS.
+
+> [https://www.mongodb.com/docs/atlas/reference/amazon-aws/](https://www.mongodb.com/docs/atlas/reference/amazon-aws/)
+
+#### Members <a name="Members" id="Members"></a>
+
+| **Name** | **Description** |
+| --- | --- |
+| <code><a href="#mongodb-atlas.AtlasRegion.US_EAST_1">US_EAST_1</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasRegion.US_WEST_2">US_WEST_2</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasRegion.CA_CENTRAL_1">CA_CENTRAL_1</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasRegion.US_EAST_2">US_EAST_2</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasRegion.US_WEST_1">US_WEST_1</a></code> | *No description.* |
+| <code><a href="#mongodb-atlas.AtlasRegion.SA_EAST_1">SA_EAST_1</a></code> | *No description.* |
+
+---
+
+##### `US_EAST_1` <a name="US_EAST_1" id="mongodb-atlas.AtlasRegion.US_EAST_1"></a>
+
+---
+
+
+##### `US_WEST_2` <a name="US_WEST_2" id="mongodb-atlas.AtlasRegion.US_WEST_2"></a>
+
+---
+
+
+##### `CA_CENTRAL_1` <a name="CA_CENTRAL_1" id="mongodb-atlas.AtlasRegion.CA_CENTRAL_1"></a>
+
+---
+
+
+##### `US_EAST_2` <a name="US_EAST_2" id="mongodb-atlas.AtlasRegion.US_EAST_2"></a>
+
+---
+
+
+##### `US_WEST_1` <a name="US_WEST_1" id="mongodb-atlas.AtlasRegion.US_WEST_1"></a>
+
+---
+
+
+##### `SA_EAST_1` <a name="SA_EAST_1" id="mongodb-atlas.AtlasRegion.SA_EAST_1"></a>
+
+---
+
 
 ### AwsRegion <a name="AwsRegion" id="mongodb-atlas.AwsRegion"></a>
 

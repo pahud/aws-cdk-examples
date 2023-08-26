@@ -1,14 +1,14 @@
 import * as path from 'path';
 import { PythonFunction } from '@aws-cdk/aws-lambda-python-alpha';
 import {
-  App, Stack, SecretValue,
+  App, Stack,
+  aws_ec2 as ec2,
   aws_lambda as lambda,
   aws_apigateway as apigw,
-  aws_secretsmanager as secretsmanager,
-  CfnOutput,
+  Duration,
 } from 'aws-cdk-lib';
 import {
-  MongoDBAtlasBootstrap, AtlasCluster, ServerlessInstance, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion,
+  MongoDBAtlasBootstrap, AtlasCluster, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion,
   ClusterType, getVpc, AtlasCfnType,
 } from './index';
 
@@ -65,32 +65,22 @@ const cluster = new AtlasCluster(demoStack, 'Cluster', {
   profile: secretProfile,
   replication,
   accessList: [
-    // { ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' },
-    { ipAddress: '0.0.0.0/0', comment: 'allow all' },
+    { ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' },
+    // { ipAddress: '0.0.0.0/0', comment: 'allow all' },
   ],
-  peering: { vpc, cidr: '192.168.248.0/21' },
   clusterType: ClusterType.REPLICASET,
 });
 
-// create a serverless instance
-new ServerlessInstance(demoStack, 'ServerlessInstance', {
-  orgId,
-  instanceName: 'my-serverless-instance',
-  profile: secretProfile,
-  project: cluster.project,
-  continuousBackup: true,
+// add a private endpoint for it
+cluster.addPrivateEndpoint({
+  vpc,
+  vpcSubnets: [
+    { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, onePerAz: true },
+  ],
 });
 
-/**
- * Create a secret to store the connection string and password.
- * Lambda function will retrieve this secret for the connection string and
- * connect to the MongoDB.
- */
-const connectionStringSecret = new secretsmanager.Secret(demoStack, 'ConnectionStringSecret', {
-  secretName: 'cfn/atlas/connectionString/default',
-  secretStringValue: SecretValue.unsafePlainText('changeMe'),
-});
-new CfnOutput(demoStack, 'ConnectionStringSecretName', { value: connectionStringSecret.secretName });
+// or with VPC peering:
+// cluster.addVpcPeering({ vpc, cidr: "192.168.248.0/21" });
 
 // The demo lambda function.
 const handler = new PythonFunction(demoStack, 'LambdaFunc', {
@@ -98,14 +88,19 @@ const handler = new PythonFunction(demoStack, 'LambdaFunc', {
   runtime: lambda.Runtime.PYTHON_3_10,
   handler: 'handler',
   index: 'index.py',
+  timeout: Duration.seconds(30),
   vpc,
+  // securityGroups: [
+  //   SecurityGroup.fromLookupByName(demoStack, 'defaultSG', 'default', vpc),
+  // ],
   environment: {
-    CONN_STRING_SECRET: connectionStringSecret.secretArn,
+    CONN_STRING_STANDARD: cluster.connectionStrings.standardSrv!,
+    DB_USER_SECRET_ARN: cluster.databaseUser.secret.secretArn,
   },
 });
 
-// allow the lambda to read the connection string secret
-connectionStringSecret.grantRead(handler);
+// allow the handler to read the db user secret
+cluster.databaseUser.secret.grantRead(handler);
 
 // create the API Gateway API with the lambda handler.
 new apigw.LambdaRestApi(demoStack, 'RestAPI', { handler });
