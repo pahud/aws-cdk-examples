@@ -7,7 +7,6 @@ import {
   aws_apigateway as apigw,
   Duration,
 } from 'aws-cdk-lib';
-import { SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 import {
   MongoDBAtlasBootstrap, AtlasCluster, ReplicationSpecs, EbsVolumeType, InstanceSize, AwsRegion,
   ClusterType, getVpc, AtlasCfnType,
@@ -91,9 +90,9 @@ const handler = new PythonFunction(demoStack, 'LambdaFunc', {
   index: 'index.py',
   timeout: Duration.seconds(30),
   vpc,
-  securityGroups: [
-    SecurityGroup.fromLookupByName(demoStack, 'defaultSG', 'default', vpc),
-  ],
+  // securityGroups: [
+  //   SecurityGroup.fromLookupByName(demoStack, 'defaultSG', 'default', vpc),
+  // ],
   environment: {
     CONN_STRING_STANDARD: cluster.connectionStrings.standardSrv!,
     DB_USER_SECRET_ARN: cluster.databaseUser.secret.secretArn,
