@@ -1,4 +1,7 @@
-import { Resource, ResourceProps } from 'aws-cdk-lib';
+import {
+  Resource, ResourceProps,
+  aws_secretsmanager as secretsmanager,
+} from 'aws-cdk-lib';
 import { CfnDatabaseUser } from 'awscdk-resources-mongodbatlas';
 import { Construct } from 'constructs';
 import { IProject } from './project';
@@ -29,20 +32,34 @@ export class DatabaseUser extends Resource implements IDatabaseUser {
   }
   readonly userCFNIdentifier: string;
   readonly dabataseUserName: string;
+  readonly secret: secretsmanager.Secret;
+  private readonly props: DatabaseUserProps;
 
   constructor(scope: Construct, id: string, props: DatabaseUserProps) {
     super(scope, id);
 
+    this.props = props;
     this.dabataseUserName = props.username ?? 'atlas-user';
+    this.secret = this.generateSecret();
     const resource = new CfnDatabaseUser(this, 'Resource', {
       ...props,
       profile: props.profile,
       databaseName: props.databaseName ?? 'admin',
       projectId: props.project.projectId,
-      username: this.dabataseUserName,
-      password: props.password ?? 'atlas-pwd',
+      username: this.secret.secretValueFromJson('username').toString(),
+      password: this.secret.secretValueFromJson('password').toString(),
       roles: [{ roleName: 'atlasAdmin', databaseName: 'admin' }],
     });
     this.userCFNIdentifier = resource.attrUserCFNIdentifier;
+  }
+  private generateSecret(): secretsmanager.Secret {
+    return new secretsmanager.Secret(this, 'DatabaseUserSecret', {
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ username: this.dabataseUserName, password: this.props.password }),
+        generateStringKey: this.props.password ? undefined : 'password',
+        excludeCharacters: '%+~`#$&*()|[]{}:;<>?!\'/@"\\=-.,',
+      },
+    });
+
   }
 }

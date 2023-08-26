@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-import random, json, os, boto3
+import random, json, os, re, boto3
 
 # Function to generate a random datetime between two dates
 def random_date(start_date, end_date):
@@ -9,14 +9,30 @@ def random_date(start_date, end_date):
     random_days = random.randint(0, time_delta.days)
     return start_date + timedelta(days=random_days)
 
+def get_private_endpoint_srv(mongodb_uri, username, password):
+    """
+    Get the private endpoint SRV address from the given MongoDB URI.
+    e.g. `mongodb+srv://my-cluster.mzvjf.mongodb.net` will be converted to 
+    `mongodb+srv://my-cluster-pl-0.mzvjf.mongodb.net/?retryWrites=true&w=majority`
+    """
+    match = re.match(r"mongodb\+srv://(.+)\.(.+).mongodb.net", mongodb_uri)
+    if match:
+        return "mongodb+srv://{}:{}@{}-pl-0.{}.mongodb.net/?retryWrites=true&w=majority".format(username, password, match.group(1), match.group(2))
+    else:
+        raise ValueError("Invalid MongoDB URI: {}".format(mongodb_uri))
+
+
 def handler(event, context):
   client = boto3.client('secretsmanager')
-  secretArn = os.environ.get('CONN_STRING_SECRET')
-  uri = client.get_secret_value(
-    SecretId=secretArn
-  ).get('SecretString')
+  conn_string_srv = os.environ.get('CONN_STRING_STANDARD')
+  secretId = os.environ.get('DB_USER_SECRET_ARN')
+  json_secret = json.loads(client.get_secret_value(SecretId=secretId).get('SecretString'))
+  username = json_secret.get('username')
+  password = json_secret.get('password')
+  conn_string_private = get_private_endpoint_srv(conn_string_srv, username, password)
+  print('conn_string=', conn_string_private)
 
-  client = MongoClient(uri, server_api=ServerApi('1'))
+  client = MongoClient(conn_string_private, server_api=ServerApi('1'))
 
   # Select the database to use.
   db = client['mongodbVSCodePlaygroundDB']

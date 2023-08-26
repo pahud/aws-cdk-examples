@@ -3,118 +3,6 @@
 exports[`default validation 1`] = `
 {
   "Outputs": {
-    "mongoCdkBootstrapActivateCmdClusterC0C2877F": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::Cluster --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdDatabaseUser9D62210B": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::DatabaseUser --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdNetworkContainerB08CFFFE": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::NetworkContainer --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdNetworkPeeringFF8C79D7": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::NetworkPeering --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdProjectD99573BE": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::Project --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdProjectIpAccessList3C42A46D": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::ProjectIpAccessList --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
-    "mongoCdkBootstrapActivateCmdServerlessInstance2CA20B2E": {
-      "Value": {
-        "Fn::Join": [
-          "",
-          [
-            "aws cloudformation activate-type --type-name MongoDB::Atlas::ServerlessInstance --publisher-id bb989456c78c398a858fef18f2ca1bfc1fbba082 --type RESOURCE --execution-role-arn ",
-            {
-              "Fn::GetAtt": [
-                "mongoCdkBootstrapCfnExecRole6DEA467E",
-                "Arn",
-              ],
-            },
-          ],
-        ],
-      },
-    },
     "mongoCdkBootstrapMongoSecretProfileSecretNameC7B5BCEE": {
       "Value": {
         "Fn::Join": [
@@ -330,6 +218,62 @@ exports[`default validation 1`] = `
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
     },
+    "mongoCdkBootstrapTypeActivationClusterB5D5FC03": {
+      "Properties": {
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "mongoCdkBootstrapCfnExecRole6DEA467E",
+            "Arn",
+          ],
+        },
+        "PublisherId": "bb989456c78c398a858fef18f2ca1bfc1fbba082",
+        "Type": "RESOURCE",
+        "TypeName": "MongoDB::Atlas::Cluster",
+      },
+      "Type": "AWS::CloudFormation::TypeActivation",
+    },
+    "mongoCdkBootstrapTypeActivationDatabaseUser3B3692C8": {
+      "Properties": {
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "mongoCdkBootstrapCfnExecRole6DEA467E",
+            "Arn",
+          ],
+        },
+        "PublisherId": "bb989456c78c398a858fef18f2ca1bfc1fbba082",
+        "Type": "RESOURCE",
+        "TypeName": "MongoDB::Atlas::DatabaseUser",
+      },
+      "Type": "AWS::CloudFormation::TypeActivation",
+    },
+    "mongoCdkBootstrapTypeActivationProject08288EFE": {
+      "Properties": {
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "mongoCdkBootstrapCfnExecRole6DEA467E",
+            "Arn",
+          ],
+        },
+        "PublisherId": "bb989456c78c398a858fef18f2ca1bfc1fbba082",
+        "Type": "RESOURCE",
+        "TypeName": "MongoDB::Atlas::Project",
+      },
+      "Type": "AWS::CloudFormation::TypeActivation",
+    },
+    "mongoCdkBootstrapTypeActivationProjectIpAccessList631D8FCC": {
+      "Properties": {
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "mongoCdkBootstrapCfnExecRole6DEA467E",
+            "Arn",
+          ],
+        },
+        "PublisherId": "bb989456c78c398a858fef18f2ca1bfc1fbba082",
+        "Type": "RESOURCE",
+        "TypeName": "MongoDB::Atlas::ProjectIpAccessList",
+      },
+      "Type": "AWS::CloudFormation::TypeActivation",
+    },
   },
   "Rules": {
     "CheckBootstrapVersion": {
@@ -364,14 +308,6 @@ exports[`default validation 1`] = `
 exports[`default validation 2`] = `
 {
   "Outputs": {
-    "ClusterVpcPeeringConnectionId734C7A5C": {
-      "Value": {
-        "Fn::GetAtt": [
-          "ClusternetworkpeeringCluster3BFCD83E",
-          "ConnectionId",
-        ],
-      },
-    },
     "ClusterconnectionStrings17813228": {
       "Value": {
         "Fn::GetAtt": [
@@ -397,269 +333,7 @@ exports[`default validation 2`] = `
     },
   },
   "Resources": {
-    "ClusterCustomResourceVpcPeeringHandler93AA8AB3": {
-      "DeletionPolicy": "Delete",
-      "DependsOn": [
-        "ClusternetworkpeeringCluster3BFCD83E",
-      ],
-      "Properties": {
-        "ConnectionId": {
-          "Fn::GetAtt": [
-            "ClusternetworkpeeringCluster3BFCD83E",
-            "ConnectionId",
-          ],
-        },
-        "ServiceToken": {
-          "Fn::GetAtt": [
-            "ClusterVpcPeeringProviderframeworkonEventC25E3ED3",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::VpcPeeringHandler",
-      "UpdateReplacePolicy": "Delete",
-    },
-    "ClusterVpcPeeringHandler6D0A269A": {
-      "DependsOn": [
-        "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65",
-        "ClusterVpcPeeringHandlerServiceRoleD02A4066",
-      ],
-      "Properties": {
-        "Code": {
-          "S3Bucket": {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
-          },
-          "S3Key": "16913b75dfde1e173c826fe8ff63f11ae78620f808015d23d446080cc0b5e37a.zip",
-        },
-        "Handler": "vpc-peering-handler.on_event",
-        "Role": {
-          "Fn::GetAtt": [
-            "ClusterVpcPeeringHandlerServiceRoleD02A4066",
-            "Arn",
-          ],
-        },
-        "Runtime": "python3.10",
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "ClusterVpcPeeringHandlerServiceRoleD02A4066": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "ec2:AcceptVpcPeeringConnection",
-                "ec2:DescribeVpcPeeringConnections",
-                "ec2:DeleteVpcPeeringConnection",
-              ],
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":ec2:",
-                      {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":vpc-peering-connection/",
-                      {
-                        "Fn::GetAtt": [
-                          "ClusternetworkpeeringCluster3BFCD83E",
-                          "ConnectionId",
-                        ],
-                      },
-                    ],
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":ec2:",
-                      {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":vpc/",
-                      {
-                        "Ref": "Vpc8378EB38",
-                      },
-                    ],
-                  ],
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "ClusterVpcPeeringHandlerServiceRoleDefaultPolicyFA513A65",
-        "Roles": [
-          {
-            "Ref": "ClusterVpcPeeringHandlerServiceRoleD02A4066",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "ClusterVpcPeeringProviderframeworkonEventC25E3ED3": {
-      "DependsOn": [
-        "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A",
-        "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
-      ],
-      "Properties": {
-        "Code": {
-          "S3Bucket": {
-            "Fn::Sub": "cdk-hnb659fds-assets-\${AWS::AccountId}-\${AWS::Region}",
-          },
-          "S3Key": "8e3d635893ea17fa3158623489cd42c680fad925b38de1ef51cb10d84f6e245e.zip",
-        },
-        "Description": "AWS CDK resource provider framework - onEvent (mongodb-demo-stack/Cluster/VpcPeeringProvider)",
-        "Environment": {
-          "Variables": {
-            "USER_ON_EVENT_FUNCTION_ARN": {
-              "Fn::GetAtt": [
-                "ClusterVpcPeeringHandler6D0A269A",
-                "Arn",
-              ],
-            },
-          },
-        },
-        "Handler": "framework.onEvent",
-        "Role": {
-          "Fn::GetAtt": [
-            "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs14.x",
-        "Timeout": 900,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": "lambda:InvokeFunction",
-              "Effect": "Allow",
-              "Resource": [
-                {
-                  "Fn::GetAtt": [
-                    "ClusterVpcPeeringHandler6D0A269A",
-                    "Arn",
-                  ],
-                },
-                {
-                  "Fn::Join": [
-                    "",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "ClusterVpcPeeringHandler6D0A269A",
-                          "Arn",
-                        ],
-                      },
-                      ":*",
-                    ],
-                  ],
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "ClusterVpcPeeringProviderframeworkonEventServiceRoleDefaultPolicy4A02D27A",
-        "Roles": [
-          {
-            "Ref": "ClusterVpcPeeringProviderframeworkonEventServiceRole10788C15",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
     "ClusterclusterCluster0934C304": {
-      "DependsOn": [
-        "ClusternetworkcontainerCluster7DC0968C",
-      ],
       "Properties": {
         "ClusterType": "REPLICASET",
         "Name": "my-cluster",
@@ -694,10 +368,33 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::Cluster",
     },
+    "ClusterdbuserClusterDatabaseUserSecret959DE334": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "GenerateSecretString": {
+          "ExcludeCharacters": "%+~\`#$&*()|[]{}:;<>?!'/@"\\=-.,",
+          "GenerateStringKey": "password",
+          "SecretStringTemplate": "{"username":"atlas-user"}",
+        },
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
     "ClusterdbuserClusterE136AF44": {
       "Properties": {
         "DatabaseName": "admin",
-        "Password": "atlas-pwd",
+        "Password": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "ClusterdbuserClusterDatabaseUserSecret959DE334",
+              },
+              ":SecretString:password::}}",
+            ],
+          ],
+        },
         "Profile": "my-mongo-profile",
         "ProjectId": {
           "Fn::GetAtt": [
@@ -711,7 +408,18 @@ exports[`default validation 2`] = `
             "RoleName": "atlasAdmin",
           },
         ],
-        "Username": "atlas-user",
+        "Username": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "ClusterdbuserClusterDatabaseUserSecret959DE334",
+              },
+              ":SecretString:username::}}",
+            ],
+          ],
+        },
       },
       "Type": "MongoDB::Atlas::DatabaseUser",
     },
@@ -738,61 +446,38 @@ exports[`default validation 2`] = `
       },
       "Type": "MongoDB::Atlas::ProjectIpAccessList",
     },
-    "ClusternetworkcontainerCluster7DC0968C": {
+    "ClusterprivateendpointClusterDDC93643": {
       "Properties": {
-        "AtlasCidrBlock": "192.168.248.0/21",
-        "Profile": "my-mongo-profile",
-        "ProjectId": {
+        "GroupId": {
           "Fn::GetAtt": [
             "ClusterprojectCluster4966D242",
             "Id",
           ],
         },
-        "Provisioned": true,
-        "RegionName": "US_EAST_1",
-        "VpcId": {
-          "Ref": "Vpc8378EB38",
-        },
-      },
-      "Type": "MongoDB::Atlas::NetworkContainer",
-    },
-    "ClusternetworkpeeringCluster3BFCD83E": {
-      "Properties": {
-        "AccepterRegionName": {
-          "Ref": "AWS::Region",
-        },
-        "AwsAccountId": {
-          "Ref": "AWS::AccountId",
-        },
-        "ContainerId": {
-          "Fn::GetAtt": [
-            "ClusternetworkcontainerCluster7DC0968C",
-            "Id",
-          ],
-        },
+        "PrivateEndpoints": [
+          {
+            "SubnetIds": [
+              {
+                "Ref": "VpcPrivateSubnet1Subnet536B997A",
+              },
+              {
+                "Ref": "VpcPrivateSubnet2Subnet3788AAA1",
+              },
+            ],
+            "VpcId": {
+              "Ref": "Vpc8378EB38",
+            },
+          },
+        ],
         "Profile": "my-mongo-profile",
-        "ProjectId": {
-          "Fn::GetAtt": [
-            "ClusterprojectCluster4966D242",
-            "Id",
-          ],
-        },
-        "RouteTableCIDRBlock": {
-          "Fn::GetAtt": [
-            "Vpc8378EB38",
-            "CidrBlock",
-          ],
-        },
-        "VpcId": {
-          "Ref": "Vpc8378EB38",
-        },
+        "Region": "us-east-1",
       },
-      "Type": "MongoDB::Atlas::NetworkPeering",
+      "Type": "MongoDB::Atlas::PrivateEndpoint",
     },
     "ClusterprojectCluster4966D242": {
       "Properties": {
         "Name": "project-projectCluster",
-        "OrgId": "618cb365c835351df903f6ba",
+        "OrgId": "mock_id",
         "Profile": "my-mongo-profile",
       },
       "Type": "MongoDB::Atlas::Project",

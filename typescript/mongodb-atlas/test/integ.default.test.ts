@@ -51,8 +51,15 @@ test('default validation', () => {
     profile: secretProfile,
     replication,
     accessList: [{ ipAddress: vpc.vpcCidrBlock, comment: 'allow from my VPC only' }],
-    peering: { vpc, cidr: '192.168.248.0/21' },
     clusterType: ClusterType.REPLICASET,
+  });
+
+  // add a private endpoint for it
+  cluster.addPrivateEndpoint({
+    vpc,
+    vpcSubnets: [
+      { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS, onePerAz: true },
+    ],
   });
 
   // create a serverless instance

@@ -171,6 +171,7 @@ export interface DatabaseUserOptions {
   readonly x509Type?: atlas.CfnDatabaseUserPropsX509Type;
   /**
    * The user’s password. This field is not included in the entity returned from the server.
+   * @default auto-generated
    */
   readonly password?: string;
   /**

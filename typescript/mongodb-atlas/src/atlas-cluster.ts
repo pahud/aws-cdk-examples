@@ -14,11 +14,17 @@ import {
 import { Construct } from 'constructs';
 import {
   Cluster, DatabaseUser, IDatabaseUser, IpAccessList, AccessList,
-  IProject, Project, ReplicationSpecs, AwsRegion, ClusterType,
+  IProject, Project, ReplicationSpecs, AtlasRegion, ClusterType, PrivateEndpointVpcOptions, PrivateEndpoint,
 } from './';
 
-export interface PeeringProps {
+export interface VpcPeeringOptions {
+  /**
+   * The AWS VPC to peer with.
+   */
   readonly vpc: ec2.IVpc;
+  /**
+   * The Atlas CIDR block for the network container.
+   */
   readonly cidr: string;
   /**
    * The AWS region name to accept the peering.
@@ -68,20 +74,10 @@ export interface AtlasClusterProps {
    */
   readonly replication: ReplicationSpecs[];
   /**
-   * VPC peering options with AWS. If you enable this option, the network container and network peering with AWS VPC
-   * will be provisioned and the VPC peering request will be auto accepted.
-   *
-   * @see https://www.mongodb.com/docs/atlas/security-vpc-peering/
-   *
-   * @default - no vpc peering.
+   * MongoDB Atlas region.
+   * @default AtlasRegion.US_EAST_1
    */
-  readonly peering?: PeeringProps;
-  /**
-   * Region for the network container.
-   *
-   * @default US_EAST_1
-   */
-  readonly region?: AwsRegion;
+  readonly region?: AtlasRegion;
   /**
    * Type of the cluster.
    *
@@ -99,10 +95,14 @@ export class AtlasCluster extends Construct {
   readonly ipAccessList: IpAccessList;
   readonly connectionStrings: ConnectionStrings;
   readonly databaseUser: DatabaseUser;
+  private readonly id: string;
+  private vpcPeering: boolean = false;
+  private privateEndpoint: boolean = false;
 
   constructor(scope: Construct, id: string, props: AtlasClusterProps ) {
     super(scope, id);
 
+    this.id = id;
     this.props = props;
     this.orgId = props.orgId;
     this.profile = props.profile;
@@ -111,89 +111,6 @@ export class AtlasCluster extends Construct {
     this.connectionStrings = this.cluster.connectionStrings;
     this.databaseUser = this.createDatabaseUser(id);
     this.ipAccessList = this.createIpAccessList(id);
-
-    if (props.peering) {
-      // create network container
-      const container = new CfnNetworkContainer(this, `networkcontainer${id}`, {
-        projectId: this.project.projectId,
-        regionName: props.region ?? 'US_EAST_1',
-        profile: props.profile,
-        vpcId: props.peering.vpc.vpcId,
-        atlasCidrBlock: props.peering.cidr,
-        provisioned: true,
-      });
-      // create the peering
-      const peering = new CfnNetworkPeering(this, `networkpeering${id}`, {
-        containerId: container.attrId,
-        projectId: this.project.projectId,
-        vpcId: props.peering.vpc.vpcId,
-        profile: props.profile,
-        routeTableCidrBlock: props.peering.vpc.vpcCidrBlock,
-        accepterRegionName: props.peering.acceptRegionName ?? Aws.REGION,
-        awsAccountId: props.peering.accountId ?? Aws.ACCOUNT_ID,
-      });
-      new CfnOutput(this, 'VpcPeeringConnectionId', { value: peering.attrConnectionId });
-      this.cluster.node.addDependency(container);
-
-      // create the custom resource to accept the peering request
-      const provider = new cr.Provider(this, 'VpcPeeringProvider', {
-        onEventHandler: new lambda.Function(this, 'VpcPeeringHandler', {
-          runtime: lambda.Runtime.PYTHON_3_10,
-          code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
-          handler: 'vpc-peering-handler.on_event',
-        }),
-      });
-      provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
-        actions: [
-          'ec2:AcceptVpcPeeringConnection',
-          'ec2:DescribeVpcPeeringConnections',
-          'ec2:DeleteVpcPeeringConnection',
-        ],
-        resources: [
-          Stack.of(this).formatArn({
-            service: 'ec2',
-            resource: 'vpc-peering-connection',
-            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
-            resourceName: peering.attrConnectionId,
-          }),
-          Stack.of(this).formatArn({
-            service: 'ec2',
-            resource: 'vpc',
-            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
-            resourceName: props.peering.vpc.vpcId,
-          }),
-        ],
-      }));
-      provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
-        actions: [
-          'ec2:AcceptVpcPeeringConnection',
-          'ec2:DescribeVpcPeeringConnections',
-          'ec2:DeleteVpcPeeringConnection',
-        ],
-        resources: [
-          Stack.of(this).formatArn({
-            service: 'ec2',
-            resource: 'vpc-peering-connection',
-            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
-            resourceName: peering.attrConnectionId,
-          }),
-          Stack.of(this).formatArn({
-            service: 'ec2',
-            resource: 'vpc',
-            account: props.peering.accountId ?? Aws.ACCOUNT_ID,
-            resourceName: props.peering.vpc.vpcId,
-          }),
-        ],
-      }));
-      const peeringHandlerResource = new CustomResource(this, 'CustomResourceVpcPeeringHandler', {
-        serviceToken: provider.serviceToken,
-        resourceType: 'Custom::VpcPeeringHandler',
-        properties: {
-          ConnectionId: peering.attrConnectionId,
-        },
-      });
-      peeringHandlerResource.node.addDependency(peering);
-    }
 
     new CfnOutput(this, 'connectionStrings', { value: this.cluster.connectionStrings.standardSrv! });
 
@@ -224,6 +141,118 @@ export class AtlasCluster extends Construct {
       profile: this.profile,
       project: this.project,
       accessList: this.props.accessList,
+    });
+  }
+  /**
+   * Add a VPC peering for this cluster.
+   */
+  public addVpcPeering(options: VpcPeeringOptions) {
+    if (this.privateEndpoint) {
+      throw new Error('Cannot create both VPC peering and private endpoint');
+    }
+    this.vpcPeering = true;
+    // create network container
+    const container = new CfnNetworkContainer(
+      this,
+      `networkcontainer${this.id}`,
+      {
+        projectId: this.project.projectId,
+        regionName: options.acceptRegionName ?? AtlasRegion.US_EAST_1,
+        profile: this.props.profile,
+        vpcId: options.vpc.vpcId,
+        atlasCidrBlock: options.cidr,
+        provisioned: true,
+      },
+    );
+    // create the peering
+    const peering = new CfnNetworkPeering(this, `peering${this.id}`, {
+      containerId: container.attrId,
+      projectId: this.project.projectId,
+      vpcId: options.vpc.vpcId,
+      profile: this.props.profile,
+      routeTableCidrBlock: options.vpc.vpcCidrBlock,
+      accepterRegionName: options.acceptRegionName ?? Aws.REGION,
+      awsAccountId: options.accountId ?? Aws.ACCOUNT_ID,
+    });
+    new CfnOutput(this, 'VpcPeeringConnectionId', {
+      value: peering.attrConnectionId,
+    });
+    this.cluster.node.addDependency(container);
+    peering.addDependency(container);
+
+    // create the custom resource to accept the peering request
+    const provider = new cr.Provider(this, 'VpcPeeringProvider', {
+      onEventHandler: new lambda.Function(this, 'VpcPeeringHandler', {
+        runtime: lambda.Runtime.PYTHON_3_10,
+        code: lambda.Code.fromAsset(path.join(__dirname, '../lambda')),
+        handler: 'vpc-peering-handler.on_event',
+      }),
+    });
+    provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:AcceptVpcPeeringConnection',
+        'ec2:DescribeVpcPeeringConnections',
+        'ec2:DeleteVpcPeeringConnection',
+      ],
+      resources: [
+        Stack.of(this).formatArn({
+          service: 'ec2',
+          resource: 'vpc-peering-connection',
+          account: options.accountId ?? Aws.ACCOUNT_ID,
+          resourceName: peering.attrConnectionId,
+        }),
+        Stack.of(this).formatArn({
+          service: 'ec2',
+          resource: 'vpc',
+          account: options.accountId ?? Aws.ACCOUNT_ID,
+          resourceName: options.vpc.vpcId,
+        }),
+      ],
+    }));
+    provider.onEventHandler.addToRolePolicy(new iam.PolicyStatement({
+      actions: [
+        'ec2:AcceptVpcPeeringConnection',
+        'ec2:DescribeVpcPeeringConnections',
+        'ec2:DeleteVpcPeeringConnection',
+      ],
+      resources: [
+        Stack.of(this).formatArn({
+          service: 'ec2',
+          resource: 'vpc-peering-connection',
+          account: options.accountId ?? Aws.ACCOUNT_ID,
+          resourceName: peering.attrConnectionId,
+        }),
+        Stack.of(this).formatArn({
+          service: 'ec2',
+          resource: 'vpc',
+          account: options.accountId ?? Aws.ACCOUNT_ID,
+          resourceName: options.vpc.vpcId,
+        }),
+      ],
+    }));
+    const peeringHandlerResource = new CustomResource(this, 'CustomResourceVpcPeeringHandler', {
+      serviceToken: provider.serviceToken,
+      resourceType: 'Custom::VpcPeeringHandler',
+      properties: {
+        ConnectionId: peering.attrConnectionId,
+      },
+    });
+    peeringHandlerResource.node.addDependency(peering);
+  }
+  /**
+   * Add a private endpoint for this cluster.
+   */
+  public addPrivateEndpoint(options: PrivateEndpointVpcOptions) {
+    if (this.vpcPeering) {
+      throw new Error('Cannot create both VPC peering and private endpoint');
+    }
+    this.privateEndpoint = true;
+    return new PrivateEndpoint(this, `private-endpoint-${this.id}`, {
+      profile: this.props.profile,
+      project: this.project,
+      region: this.props.region ?? AtlasRegion.US_EAST_1,
+      vpc: options.vpc,
+      vpcSubnets: options.vpcSubnets,
     });
   }
 
