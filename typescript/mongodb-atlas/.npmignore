@@ -28,3 +28,5 @@ yarn-error.log
 .github
 .mergify.yml
 !yarn.lock
+/.gitattributes
+/.projenrc.ts

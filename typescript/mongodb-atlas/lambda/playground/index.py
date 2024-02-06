@@ -13,11 +13,23 @@ def get_private_endpoint_srv(mongodb_uri, username, password):
     """
     Get the private endpoint SRV address from the given MongoDB URI.
     e.g. `mongodb+srv://my-cluster.mzvjf.mongodb.net` will be converted to 
-    `mongodb+srv://my-cluster-pl-0.mzvjf.mongodb.net/?retryWrites=true&w=majority`
+    `mongodb+srv://<username>:<password>@my-cluster-pl-0.mzvjf.mongodb.net/?retryWrites=true&w=majority`
     """
     match = re.match(r"mongodb\+srv://(.+)\.(.+).mongodb.net", mongodb_uri)
     if match:
         return "mongodb+srv://{}:{}@{}-pl-0.{}.mongodb.net/?retryWrites=true&w=majority".format(username, password, match.group(1), match.group(2))
+    else:
+        raise ValueError("Invalid MongoDB URI: {}".format(mongodb_uri))
+
+def get_public_endpoint_srv(mongodb_uri, username, password):
+    """
+    Get the private endpoint SRV address from the given MongoDB URI.
+    e.g. `mongodb+srv://my-cluster.mzvjf.mongodb.net` will be converted to 
+    `mongodb+srv://<username>:<password>@my-cluster.mzvjf.mongodb.net/?retryWrites=true&w=majority`
+    """
+    match = re.match(r"mongodb\+srv://(.+)\.(.+).mongodb.net", mongodb_uri)
+    if match:
+        return "mongodb+srv://{}:{}@{}.{}.mongodb.net/?retryWrites=true&w=majority".format(username, password, match.group(1), match.group(2))
     else:
         raise ValueError("Invalid MongoDB URI: {}".format(mongodb_uri))
 
@@ -29,10 +41,11 @@ def handler(event, context):
   json_secret = json.loads(client.get_secret_value(SecretId=secretId).get('SecretString'))
   username = json_secret.get('username')
   password = json_secret.get('password')
-  conn_string_private = get_private_endpoint_srv(conn_string_srv, username, password)
-  print('conn_string=', conn_string_private)
+#   conn_string_private = get_private_endpoint_srv(conn_string_srv, username, password)
+  conn_string = get_public_endpoint_srv(conn_string_srv, username, password)
+  print('conn_string=', conn_string)
 
-  client = MongoClient(conn_string_private, server_api=ServerApi('1'))
+  client = MongoClient(conn_string, server_api=ServerApi('1'))
 
   # Select the database to use.
   db = client['mongodbVSCodePlaygroundDB']

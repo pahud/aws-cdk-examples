@@ -2,7 +2,7 @@
 
 This example walks you through building a serverless application using MongoDB Atlas cluster and  serverless instance using AWS CDK.
 
-<img src=./images/peering-diagram-serverless-api.svg>
+<img src=./images/mongo-serverless.drawio.svg>
 
 # How it works
 
@@ -45,6 +45,7 @@ Configure your AWS CLI and make sure it authenticates with AWS.
 $ aws sts get-caller-identity
 ```
 
+
 Now, let's bootstrap the extensions to create the IAM execution role and the profile secret.
 
 ```sh
@@ -52,9 +53,16 @@ $ npx cdk diff mongo-cdk-bootstrap
 $ npx cdk deploy mongo-cdk-bootstrap
 ```
 
+Outputs:
+```
+Outputs:
+mongo-cdk-bootstrap.cdkbootstrapMongoSecretProfileSecretName3AA8A1F9 = cfn/atlas/profile/development
+mongo-cdk-bootstrap.cdkbootstrapMongoSecretProfileUpdateSecretCommandE4972F25 = aws secretsmanager update-secret --secret-id cfn/atlas/profile/development --secret-string "{\"PublicKey\":\"${MONGO_ATLAS_PUBLIC_KEY}\",\"PrivateKey\":\"${MONGO_ATLAS_PRIVATE_KEY}\"}"
+```
+
 Update the Secret with your public and private keys. You can generate your key pair in the MongoDB Atlas console.
 
-> Make sure the user of the API key with the [ORG_GROUP_CREATOR](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in this demo.
+> Make sure the user of the API key with the [Organization Project Creator](https://www.mongodb.com/docs/atlas/reference/user-roles/#mongodb-authrole-Organization-Project-Creator) permission as we need to creat a new project in this demo.
 
 Update the key pair in the generated secret with AWS CLI:
 
@@ -62,7 +70,7 @@ Update the key pair in the generated secret with AWS CLI:
 $ export MONGO_ATLAS_PUBLIC_KEY='your_public_key'
 $ export MONGO_ATLAS_PRIVATE_KEY='your_private_key'
 # update the secret with AWS CLI
-$ aws secretsmanager update-secret --secret-id cfn/atlas/profile/my-mongo-profile --secret-string "{\"PublicKey\":\"${MONGO_ATLAS_PUBLIC_KEY}\",\"PrivateKey\":\"${MONGO_ATLAS_PRIVATE_KEY}\"}"
+$ aws secretsmanager update-secret --secret-id cfn/atlas/profile/development --secret-string "{\"PublicKey\":\"${MONGO_ATLAS_PUBLIC_KEY}\",\"PrivateKey\":\"${MONGO_ATLAS_PRIVATE_KEY}\"}"
 ```
 
 Your are all set.
@@ -70,6 +78,14 @@ Your are all set.
 # Demo
 
 Now, Let's deploy the `mongodb-demo-stack` that creates a replicaSet cluster and a serverless instance. The following resources will be created when you deploy the Demo stack:
+
+
+```sh
+$ npx cdk deploy mongo-serverless-basic
+
+
+```
+
 
 1. A new `Project`
 2. A new `DatabaseUser`
