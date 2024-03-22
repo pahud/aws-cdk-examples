@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - yarn install --frozen-lock
+
+  build:
+    commands:
+      # cdk deploy
+      - TARGET_ACCOUNT=222222222222 npx cdk deploy --require-approval never --verbose
+artifacts:
+  files:
+    - '**/*'  # Include all files in the output artifact
